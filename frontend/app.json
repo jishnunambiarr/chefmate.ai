@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "chefmate.ai",
-    "slug": "chefmate.ai",
+    "name": "chefmateai",
+    "slug": "chefmateai",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
