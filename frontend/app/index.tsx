@@ -1,11 +1,19 @@
+import { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAuth } from '@/shared/context/AuthContext';
-import { HomeScreen } from '@/features/home/components/HomeScreen';
 import { LoginScreen } from '@/features/auth/components/LoginScreen';
 import { Colors } from '@/shared/constants/theme';
 
 export default function Home() {
   const { user, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.replace('/(tabs)/home');
+    }
+  }, [user, isLoading]);
 
   if (isLoading) {
     return (
@@ -15,7 +23,7 @@ export default function Home() {
     );
   }
 
-  return user ? <HomeScreen /> : <LoginScreen />;
+  return <LoginScreen />;
 }
 
 const styles = StyleSheet.create({
