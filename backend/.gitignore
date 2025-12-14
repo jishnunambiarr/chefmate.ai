@@ -4,3 +4,6 @@ venv/
 .venv/
 .env
 *.log
+
+# Firebase service account key
+*-firebase-adminsdk-*.json

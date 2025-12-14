@@ -1,5 +1,10 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from features.elevenlabs.router import router as elevenlabs_router
 
 app = FastAPI(
     title="ChefMate API",
@@ -14,6 +19,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Include routers
+app.include_router(elevenlabs_router)
 
 
 @app.get("/")
