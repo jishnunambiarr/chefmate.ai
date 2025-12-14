@@ -39,4 +39,11 @@ async def get_conversation_token(user: dict = Depends(get_current_user)):
             )
         
         data = response.json()
+        
+        if "token" not in data:
+            raise HTTPException(
+                status_code=502,
+                detail="Invalid response from ElevenLabs: missing token"
+            )
+        
         return {"token": data["token"]}

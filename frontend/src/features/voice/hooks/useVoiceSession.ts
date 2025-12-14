@@ -38,6 +38,11 @@ export function useVoiceSession() {
       }
 
       const data = await response.json();
+      
+      if (!data.token) {
+        throw new Error('Invalid response: missing conversation token');
+      }
+      
       setState(prev => ({ ...prev, token: data.token, isLoading: false }));
       return data.token;
     } catch (error: any) {
