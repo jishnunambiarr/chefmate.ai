@@ -33,9 +33,12 @@ async def get_conversation_token(user: dict = Depends(get_current_user)):
         )
         
         if response.status_code != 200:
+            error_detail = f"ElevenLabs API error: {response.status_code}"
+            if response.status_code == 404:
+                error_detail = f"ElevenLabs agent not found. Check ELEVENLABS_AGENT_ID: {agent_id}"
             raise HTTPException(
-                status_code=response.status_code,
-                detail="Failed to get conversation token from ElevenLabs"
+                status_code=502,  # Return 502 Bad Gateway for upstream errors
+                detail=error_detail
             )
         
         data = response.json()

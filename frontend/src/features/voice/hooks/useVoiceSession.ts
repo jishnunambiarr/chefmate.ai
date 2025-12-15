@@ -26,11 +26,18 @@ export function useVoiceSession() {
 
       const idToken = await user.getIdToken();
       
-      const response = await fetch(`${API_BASE_URL}/elevenlabs/conversation-token`, {
+      const url = `${API_BASE_URL}/elevenlabs/conversation-token`;
+      console.log('Fetching conversation token from:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${idToken}`,
+          'Content-Type': 'application/json',
         },
       });
+      
+      console.log('Response status:', response.status, response.statusText);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

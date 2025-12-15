@@ -42,6 +42,12 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="recipe-display"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
     </Tabs>
   );
 }

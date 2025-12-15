@@ -1,15 +1,27 @@
 import { StyleSheet, View, Text, FlatList, ActivityIndicator, Pressable } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
+// #region agent log
+fetch('http://127.0.0.1:7242/ingest/05a29dec-4f79-4359-b311-1b867eb9c6b2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HomeScreen.tsx:2',message:'LinearGradient import check',data:{imported:!!LinearGradient,type:typeof LinearGradient,isFunction:typeof LinearGradient==='function'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+// #endregion
 import { Colors, Spacing, BorderRadius } from '@/shared/constants/theme';
 import { useRecipes } from '@/shared/hooks/useRecipes';
 import { Recipe } from '@/shared/types/recipe';
 import { CreateRecipeButton } from '@/features/voice/components/CreateRecipeButton';
 
 export function HomeScreen() {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/05a29dec-4f79-4359-b311-1b867eb9c6b2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HomeScreen.tsx:15',message:'HomeScreen rendering',data:{hasLinearGradient:!!LinearGradient},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
   const { recipes, isLoading, error } = useRecipes();
 
   return (
     <View style={styles.container}>
+      {/* #region agent log */}
+      {(() => {
+        fetch('http://127.0.0.1:7242/ingest/05a29dec-4f79-4359-b311-1b867eb9c6b2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HomeScreen.tsx:18',message:'About to render LinearGradient',data:{LinearGradientType:typeof LinearGradient,isFunction:typeof LinearGradient==='function'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        return null;
+      })()}
+      {/* #endregion */}
       <LinearGradient
         colors={[Colors.background, Colors.surface]}
         style={styles.gradient}

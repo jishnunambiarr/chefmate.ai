@@ -7,13 +7,19 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
+// #region agent log
+fetch('http://127.0.0.1:7242/ingest/05a29dec-4f79-4359-b311-1b867eb9c6b2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ProfileScreen.tsx:10',message:'LinearGradient import check',data:{imported:!!LinearGradient,type:typeof LinearGradient,isFunction:typeof LinearGradient==='function'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+// #endregion
 import { signOut } from 'firebase/auth';
 import { auth } from '@/shared/config/firebase';
 import { useAuth } from '@/shared/context/AuthContext';
 import { Colors, Spacing, BorderRadius } from '@/shared/constants/theme';
 
 export function ProfileScreen() {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/05a29dec-4f79-4359-b311-1b867eb9c6b2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ProfileScreen.tsx:22',message:'ProfileScreen rendering',data:{hasLinearGradient:!!LinearGradient},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -43,6 +49,12 @@ export function ProfileScreen() {
 
   return (
     <View style={styles.container}>
+      {/* #region agent log */}
+      {(() => {
+        fetch('http://127.0.0.1:7242/ingest/05a29dec-4f79-4359-b311-1b867eb9c6b2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ProfileScreen.tsx:50',message:'About to render LinearGradient',data:{LinearGradientType:typeof LinearGradient,isFunction:typeof LinearGradient==='function'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        return null;
+      })()}
+      {/* #endregion */}
       <LinearGradient
         colors={[Colors.background, Colors.surface]}
         style={styles.gradient}

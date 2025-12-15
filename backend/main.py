@@ -1,15 +1,32 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+import logging
 
 from features.elevenlabs.router import router as elevenlabs_router
+from features.recipes.router import router as recipes_router
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="ChefMate API",
     version="1.0.0",
 )
+
+
+# Debug middleware to log all requests
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f">>> Request: {request.method} {request.url.path}")
+    logger.info(f">>> Headers: {dict(request.headers)}")
+    response = await call_next(request)
+    logger.info(f"<<< Response: {response.status_code}")
+    return response
+
 
 # CORS for React Native
 app.add_middleware(
@@ -23,6 +40,16 @@ app.add_middleware(
 
 # Include routers
 app.include_router(elevenlabs_router)
+app.include_router(recipes_router)
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Log registered routes on startup for debugging."""
+    import logging
+    logger = logging.getLogger("uvicorn")
+    routes = [r.path for r in app.routes if hasattr(r, 'path')]
+    logger.info(f"Registered routes: {', '.join(sorted(routes))}")
 
 
 @app.get("/")
