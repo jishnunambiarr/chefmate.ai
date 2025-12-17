@@ -1,41 +1,55 @@
+import os
+import secrets
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from features.auth.firebase import get_current_user
-from features.database.firestore import save_recipe
+from features.database.firestore import save_recipe, get_recipe
 from features.recipes.models import RecipeCreate, RecipeResponse
 
 router = APIRouter(prefix="/recipes", tags=["Recipes"])
 
 
-@router.post("", response_model=RecipeResponse, status_code=status.HTTP_201_CREATED)
-async def create_recipe(
-    recipe: RecipeCreate,
-    user: dict = Depends(get_current_user)
-):
+async def verify_agent_endpoint_key(request: Request):
     """
-    Create a new recipe.
-    
-    The userId in the recipe must match the authenticated user's ID.
+    Verify the discover-agent-endpoint-key header matches the environment variable.
+    Uses constant-time string comparison to prevent timing attacks.
     """
-    user_id = user.get('uid') or user.get('user_id')
+    header_key = request.headers.get("discover-agent-endpoint-key")
+    expected_key = os.getenv("DISCOVER_AGENT_ENDPOINT_KEY")
     
-    # Verify that the userId in the recipe matches the authenticated user
-    if recipe.userId != user_id:
+    if not expected_key:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Recipe userId must match authenticated user"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Agent endpoint key not configured"
         )
     
-    # Convert Pydantic model to dict for Firestore
-    recipe_dict = recipe.model_dump()
+    if not header_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing discover-agent-endpoint-key header"
+        )
     
+    # Use constant-time comparison to prevent timing attacks
+    if not secrets.compare_digest(header_key, expected_key):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid discover-agent-endpoint-key"
+        )
+    
+    return True
+
+
+def _save_and_return_recipe(recipe_dict: dict, user_id: str) -> RecipeResponse:
+    """
+    Helper function to save a recipe and return the response.
+    Reused by both user and agent endpoints.
+    """
     try:
         # Save to Firestore
         recipe_id = save_recipe(recipe_dict, user_id)
         
         # Fetch the saved recipe to get the timestamp
-        from features.database.firestore import get_recipe
         saved_recipe = get_recipe(recipe_id)
         
         if not saved_recipe:
@@ -71,11 +85,60 @@ async def create_recipe(
             prepTime=saved_recipe.get('prepTime'),
             cookTime=saved_recipe.get('cookTime'),
             servings=saved_recipe.get('servings'),
-            imageUrl=saved_recipe.get('imageUrl'),
             createdAt=created_at_str,
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to save recipe: {str(e)}"
         )
+
+
+@router.post("", response_model=RecipeResponse, status_code=status.HTTP_201_CREATED)
+async def create_recipe(
+    recipe: RecipeCreate,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Create a new recipe.
+    
+    The userId in the recipe must match the authenticated user's ID.
+    """
+    user_id = user.get('uid') or user.get('user_id')
+    
+    # Verify that the userId in the recipe matches the authenticated user
+    if recipe.userId != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Recipe userId must match authenticated user"
+        )
+    
+    # Convert Pydantic model to dict for Firestore
+    recipe_dict = recipe.model_dump()
+    
+    # Save and return recipe using shared helper function
+    return _save_and_return_recipe(recipe_dict, user_id)
+
+
+@router.post("/agent", response_model=RecipeResponse, status_code=status.HTTP_201_CREATED)
+async def create_recipe_agent(
+    recipe: RecipeCreate,
+    request: Request,
+    _: bool = Depends(verify_agent_endpoint_key)
+):
+    """
+    Create a new recipe via AI agent.
+    
+    This endpoint is for private AI agents only and uses header-based authentication.
+    The request must include the discover-agent-endpoint-key header.
+    """
+    # Convert Pydantic model to dict for Firestore
+    recipe_dict = recipe.model_dump()
+    
+    # Use userId from the recipe (no authentication check needed for agent endpoint)
+    user_id = recipe.userId
+    
+    # Save and return recipe using shared helper function
+    return _save_and_return_recipe(recipe_dict, user_id)

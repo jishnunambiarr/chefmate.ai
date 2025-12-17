@@ -12,7 +12,6 @@ class RecipeCreate(BaseModel):
     prepTime: Optional[int] = Field(None, ge=0)
     cookTime: Optional[int] = Field(None, ge=0)
     servings: Optional[int] = Field(None, ge=1)
-    imageUrl: Optional[str] = None
 
     @field_validator('ingredients', 'instructions', mode='before')
     @classmethod
@@ -36,5 +35,4 @@ class RecipeResponse(BaseModel):
     prepTime: Optional[int] = None
     cookTime: Optional[int] = None
     servings: Optional[int] = None
-    imageUrl: Optional[str] = None
     createdAt: str  # ISO format datetime string
