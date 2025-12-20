@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,13 +8,27 @@ import {
   ActivityIndicator,
   Platform,
   PermissionsAndroid,
+  FlatList,
 } from 'react-native';
 import { useConversation } from '@elevenlabs/react-native';
 import { useRouter } from 'expo-router';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withRepeat, 
+  withTiming,
+} from 'react-native-reanimated';
 import { useVoiceSession } from '../hooks/useVoiceSession';
 import { useAuth } from '@/shared/context/AuthContext';
 import { Colors, Spacing, BorderRadius } from '@/shared/constants/theme';
 import { parseAgentRecipe, transformAgentRecipeToRecipe } from '../utils/recipeParser';
+
+interface Message {
+  id: string;
+  text: string;
+  sender: 'user' | 'agent';
+  timestamp: number;
+}
 
 export function CreateRecipeButton() {
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -22,10 +36,13 @@ export function CreateRecipeButton() {
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [conversationError, setConversationError] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   
   const router = useRouter();
   const { user } = useAuth();
   const { fetchConversationToken, isLoading: isTokenLoading, error: tokenError } = useVoiceSession();
+  const messagesEndRef = useRef<FlatList>(null);
+  const scale = useSharedValue(1);
   
   const conversation = useConversation({
     onConnect: () => {
@@ -61,6 +78,24 @@ export function CreateRecipeButton() {
         }
         
         console.log('Extracted message text:', messageText.substring(0, 200));
+        
+        // Determine sender - check if message has sender info, otherwise assume agent
+        const sender: 'user' | 'agent' = (message as any)?.sender === 'user' ? 'user' : 'agent';
+        
+        // Add message to state for real-time display
+        const newMessage: Message = {
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          text: messageText,
+          sender,
+          timestamp: Date.now(),
+        };
+        
+        setMessages(prev => [...prev, newMessage]);
+        
+        // Scroll to bottom when new message arrives
+        setTimeout(() => {
+          messagesEndRef.current?.scrollToEnd({ animated: true });
+        }, 100);
         
         const agentRecipe = parseAgentRecipe(messageText);
         
@@ -135,8 +170,28 @@ export function CreateRecipeButton() {
     if (!isModalVisible && connectionStatus === 'disconnected') {
       setConversationError(null);
       setPermissionGranted(null);
+      setMessages([]);
     }
   }, [isModalVisible, connectionStatus]);
+
+  // Animate voice icon when agent is speaking
+  useEffect(() => {
+    if (conversation.isSpeaking) {
+      scale.value = withRepeat(
+        withTiming(1.2, { duration: 500 }),
+        -1,
+        true
+      );
+    } else {
+      scale.value = withTiming(1, { duration: 300 });
+    }
+  }, [conversation.isSpeaking]);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+    };
+  });
 
   const requestMicrophonePermission = async (): Promise<boolean> => {
     if (Platform.OS === 'android') {
@@ -225,6 +280,11 @@ export function CreateRecipeButton() {
       console.log('Starting conversation session with token...');
       await conversation.startSession({
         conversationToken: token,
+        dynamicVariables: {
+          user_id: user?.uid || '',
+          diet: "None",
+          temperatur: "Celcius"
+        },
       });
       console.log('Session started, waiting for connection...');
       // Don't set mic muted here - wait for onConnect callback
@@ -332,61 +392,47 @@ export function CreateRecipeButton() {
               </View>
             ) : (
               <View style={styles.conversationContainer}>
-                <View style={[
-                  styles.voiceIndicator,
-                  conversation.isSpeaking && styles.voiceIndicatorActive,
-                  isMicMuted && styles.voiceIndicatorMuted
-                ]}>
-                  <Text style={styles.voiceIndicatorIcon}>
-                    {isMicMuted ? '🔇' : conversation.isSpeaking ? '🗣️' : '👂'}
+                {/* Animated Voice Icon */}
+                <Animated.View style={[styles.voiceIconContainer, animatedStyle]}>
+                  <Text style={styles.voiceIcon}>
+                    {conversation.isSpeaking ? '🎙️' : '🎤'}
                   </Text>
+                </Animated.View>
+
+                {/* Messages List */}
+                <View style={styles.messagesContainer}>
+                  <FlatList
+                    ref={messagesEndRef}
+                    data={messages}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                      <View style={[
+                        styles.messageBubble,
+                        item.sender === 'user' ? styles.userMessage : styles.agentMessage
+                      ]}>
+                        <Text style={[
+                          styles.messageText,
+                          item.sender === 'user' ? styles.userMessageText : styles.agentMessageText
+                        ]}>
+                          {item.text}
+                        </Text>
+                      </View>
+                    )}
+                    contentContainerStyle={styles.messagesContent}
+                    onContentSizeChange={() => {
+                      messagesEndRef.current?.scrollToEnd({ animated: true });
+                    }}
+                  />
                 </View>
-                
-                <Text style={styles.statusLabel}>
-                  {isConnected 
-                    ? (isMicMuted 
-                        ? 'Microphone is muted' 
-                        : conversation.isSpeaking 
-                          ? 'Chef is speaking...' 
-                          : 'Listening to you...')
-                    : 'Connecting...'}
-                </Text>
 
+                {/* End Call Button */}
                 {isConnected && (
-                  <>
-                    <Text style={styles.instructionText}>
-                      Tell me what ingredients you have, and I'll help you create a delicious recipe!
-                    </Text>
-
-                    {/* Debug info */}
-                    <View style={styles.debugContainer}>
-                      <Text style={styles.debugText}>
-                        Status: {conversation.status} | Mic: {isMicMuted ? 'Muted' : 'Active'} | Speaking: {conversation.isSpeaking ? 'Yes' : 'No'}
-                      </Text>
-                    </View>
-
-                    <View style={styles.controlsContainer}>
-                      <TouchableOpacity 
-                        style={[styles.controlButton, isMicMuted && styles.controlButtonMuted]} 
-                        onPress={handleToggleMute}
-                      >
-                        <Text style={styles.controlButtonIcon}>
-                          {isMicMuted ? '🔇' : '🎤'}
-                        </Text>
-                        <Text style={styles.controlButtonText}>
-                          {isMicMuted ? 'Unmute' : 'Mute'}
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity 
-                        style={[styles.controlButton, styles.endButton]} 
-                        onPress={handleEndConversation}
-                      >
-                        <Text style={styles.controlButtonIcon}>📞</Text>
-                        <Text style={styles.controlButtonText}>End Call</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </>
+                  <TouchableOpacity 
+                    style={styles.endButton} 
+                    onPress={handleEndConversation}
+                  >
+                    <Text style={styles.endButtonText}>End Call</Text>
+                  </TouchableOpacity>
                 )}
               </View>
             )}
@@ -454,8 +500,6 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: Spacing.lg,
   },
   statusContainer: {
@@ -492,85 +536,62 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   conversationContainer: {
-    alignItems: 'center',
-    gap: Spacing.lg,
+    flex: 1,
     width: '100%',
   },
-  voiceIndicator: {
-    width: 120,
-    height: 120,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface,
-    justifyContent: 'center',
+  voiceIconContainer: {
     alignItems: 'center',
-    borderWidth: 4,
-    borderColor: Colors.surfaceLight,
+    paddingVertical: Spacing.md,
+    paddingTop: Spacing.lg,
   },
-  voiceIndicatorActive: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.surface,
-  },
-  voiceIndicatorMuted: {
-    borderColor: Colors.error,
-    opacity: 0.7,
-  },
-  voiceIndicatorIcon: {
+  voiceIcon: {
     fontSize: 48,
   },
-  statusLabel: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: Colors.white,
-    textAlign: 'center',
-  },
-  instructionText: {
-    fontSize: 14,
-    color: Colors.textMuted,
-    textAlign: 'center',
-    paddingHorizontal: Spacing.xl,
-    lineHeight: 20,
-  },
-  controlsContainer: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginTop: Spacing.lg,
-    width: '100%',
-    paddingHorizontal: Spacing.lg,
-  },
-  controlButton: {
+  messagesContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.surface,
+    width: '100%',
+    paddingHorizontal: Spacing.md,
+  },
+  messagesContent: {
     paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
+  },
+  messageBubble: {
+    maxWidth: '80%',
+    padding: Spacing.md,
     borderRadius: BorderRadius.md,
-    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
   },
-  controlButtonMuted: {
-    backgroundColor: Colors.error,
+  userMessage: {
+    alignSelf: 'flex-end',
+    backgroundColor: Colors.primary,
   },
-  controlButtonIcon: {
-    fontSize: 20,
+  agentMessage: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.surface,
   },
-  controlButtonText: {
+  messageText: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  userMessageText: {
     color: Colors.white,
-    fontSize: 14,
-    fontWeight: '600',
+  },
+  agentMessageText: {
+    color: Colors.text,
   },
   endButton: {
     backgroundColor: Colors.error,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    marginHorizontal: Spacing.md,
+    marginBottom: Spacing.md,
   },
-  debugContainer: {
-    marginTop: Spacing.sm,
-    padding: Spacing.sm,
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.sm,
-  },
-  debugText: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    fontFamily: 'monospace',
+  endButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
