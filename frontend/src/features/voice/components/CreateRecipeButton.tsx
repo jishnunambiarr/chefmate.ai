@@ -9,6 +9,7 @@ import {
   Platform,
   PermissionsAndroid,
   FlatList,
+  ScrollView,
 } from 'react-native';
 import { useConversation } from '@elevenlabs/react-native';
 import { useRouter } from 'expo-router';
@@ -21,7 +22,9 @@ import Animated, {
 import { useVoiceSession } from '../hooks/useVoiceSession';
 import { useAuth } from '@/shared/context/AuthContext';
 import { Colors, Spacing, BorderRadius } from '@/shared/constants/theme';
-import { parseAgentRecipe, transformAgentRecipeToRecipe } from '../utils/recipeParser';
+import { SavedRecipeCard } from './SavedRecipeCard';
+import { Recipe } from '@/shared/types/recipe';
+import { getUserRecipes } from '@/shared/services/recipeService';
 
 interface Message {
   id: string;
@@ -37,6 +40,9 @@ export function CreateRecipeButton() {
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [conversationError, setConversationError] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [chatStartTime, setChatStartTime] = useState<Date | null>(null);
+  const [savedRecipe, setSavedRecipe] = useState<Recipe | null>(null);
+  const [isRecipeModalVisible, setIsRecipeModalVisible] = useState(false);
   
   const router = useRouter();
   const { user } = useAuth();
@@ -49,29 +55,30 @@ export function CreateRecipeButton() {
       console.log('Connected to ElevenLabs conversation');
       setConnectionStatus('connected');
       setConversationError(null);
-      // Ensure microphone is unmuted after connection is established
       setTimeout(() => {
         conversation.setMicMuted(false);
         setIsMicMuted(false);
         console.log('Microphone unmuted after connection');
       }, 500);
     },
-    onDisconnect: () => {
+    onDisconnect: async () => {
       console.log('Disconnected from ElevenLabs conversation');
       setConnectionStatus('disconnected');
       setIsModalVisible(false);
+      
+      // Check for recently saved recipe when call ends
+      if (user && chatStartTime) {
+        await checkForRecentRecipe();
+      }
     },
     onMessage: (message: any) => {
       try {
         console.log('Message received:', JSON.stringify(message, null, 2));
         
-        // Check if message contains JSON recipe
-        // Message can be a string or an object with text property
         let messageText: string;
         if (typeof message === 'string') {
           messageText = message;
         } else if (message && typeof message === 'object') {
-          // Try to extract text from various possible properties
           messageText = (message as any).text || (message as any).message || JSON.stringify(message);
         } else {
           messageText = String(message);
@@ -79,10 +86,8 @@ export function CreateRecipeButton() {
         
         console.log('Extracted message text:', messageText.substring(0, 200));
         
-        // Determine sender - check if message has sender info, otherwise assume agent
         const sender: 'user' | 'agent' = (message as any)?.sender === 'user' ? 'user' : 'agent';
         
-        // Add message to state for real-time display
         const newMessage: Message = {
           id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
           text: messageText,
@@ -92,42 +97,14 @@ export function CreateRecipeButton() {
         
         setMessages(prev => [...prev, newMessage]);
         
-        // Scroll to bottom when new message arrives
         setTimeout(() => {
           messagesEndRef.current?.scrollToEnd({ animated: true });
         }, 100);
-        
-        const agentRecipe = parseAgentRecipe(messageText);
-        
-        if (agentRecipe && user) {
-          console.log('Recipe detected:', agentRecipe.name);
-          
-          // Transform agent recipe to frontend format
-          const recipe = transformAgentRecipeToRecipe(agentRecipe, user.uid);
-          
-          // End the conversation session to prevent reading JSON
-          // Do this asynchronously to not block the message handler
-          conversation.endSession().catch((error: any) => {
-            console.log('Session end (expected):', error?.message || error);
-          });
-          
-          // Close modal
-          setIsModalVisible(false);
-          
-          // Navigate to recipe display screen with recipe data
-          router.push({
-            pathname: '/(tabs)/recipe-display',
-            params: {
-              recipe: JSON.stringify(recipe),
-            },
-          });
-        }
       } catch (error: any) {
         console.error('Error processing message:', error?.message || error);
       }
     },
     onError: (error: any) => {
-      // Ignore WebSocket closure errors that occur during normal disconnection
       const errorMessage = (typeof error === 'object' && error?.message) 
         ? String(error.message) 
         : (typeof error === 'string' ? error : String(error));
@@ -137,12 +114,10 @@ export function CreateRecipeButton() {
         errorMessage.includes('CLOSED') ||
         errorMessage.includes('CLOSING');
       
-      // Only log non-closure errors
       if (!isWebSocketClosureError) {
         console.error('Conversation error:', error);
         setConversationError(errorMessage || 'An error occurred during the conversation');
       } else {
-        // Silently ignore WebSocket closure errors during disconnection
         console.log('WebSocket closure (expected during disconnect)');
       }
     },
@@ -150,7 +125,6 @@ export function CreateRecipeButton() {
       console.log('Conversation status changed:', prop.status);
       if (prop.status === 'connected') {
         setConnectionStatus('connected');
-        // Ensure microphone is unmuted when status changes to connected
         setTimeout(() => {
           conversation.setMicMuted(false);
           setIsMicMuted(false);
@@ -165,14 +139,49 @@ export function CreateRecipeButton() {
     },
   });
 
+  // Check for recipe created within last 5 minutes
+  const checkForRecentRecipe = async () => {
+    if (!user) return;
+
+    try {
+      const recipes = await getUserRecipes(user.uid);
+      const now = new Date();
+      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+
+      // Find the most recent recipe created within the last 5 minutes
+      const recentRecipe = recipes.find((recipe) => {
+        const recipeCreatedAt = recipe.createdAt;
+        return recipeCreatedAt >= fiveMinutesAgo && recipeCreatedAt <= now;
+      });
+
+      if (recentRecipe) {
+        console.log('Found recent recipe:', recentRecipe.title);
+        setSavedRecipe(recentRecipe);
+        setIsRecipeModalVisible(true);
+      } else {
+        console.log('No recent recipe found');
+      }
+    } catch (error) {
+      console.error('Error checking for recent recipe:', error);
+    }
+  };
+
   // Reset state when modal closes
   useEffect(() => {
     if (!isModalVisible && connectionStatus === 'disconnected') {
       setConversationError(null);
       setPermissionGranted(null);
       setMessages([]);
+      setChatStartTime(null);
     }
   }, [isModalVisible, connectionStatus]);
+
+  // Set chat start time when modal opens
+  useEffect(() => {
+    if (isModalVisible && user) {
+      setChatStartTime(new Date());
+    }
+  }, [isModalVisible, user]);
 
   // Animate voice icon when agent is speaking
   useEffect(() => {
@@ -196,7 +205,6 @@ export function CreateRecipeButton() {
   const requestMicrophonePermission = async (): Promise<boolean> => {
     if (Platform.OS === 'android') {
       try {
-        // First check if permission is already granted
         const checkResult = await PermissionsAndroid.check(
           PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
         );
@@ -206,10 +214,8 @@ export function CreateRecipeButton() {
           return true;
         }
         
-        // Small delay to ensure Activity is ready (especially after reload)
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Request permission
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
           {
@@ -225,7 +231,6 @@ export function CreateRecipeButton() {
         return isGranted;
       } catch (err: any) {
         console.error('Permission error:', err);
-        // If it's the Activity not attached error, wait and retry once
         if (err?.message?.includes('not attached to an Activity')) {
           console.log('Activity not ready, waiting and retrying...');
           try {
@@ -249,14 +254,12 @@ export function CreateRecipeButton() {
         return false;
       }
     }
-    // iOS permissions are handled through Info.plist
     return true;
   };
 
   const handleStartConversation = async () => {
     setConversationError(null);
     
-    // Request microphone permission
     const hasPermission = await requestMicrophonePermission();
     setPermissionGranted(hasPermission);
     
@@ -268,14 +271,12 @@ export function CreateRecipeButton() {
     setIsModalVisible(true);
     setConnectionStatus('connecting');
 
-    // Fetch conversation token
     const token = await fetchConversationToken();
     if (!token) {
       setConnectionStatus('disconnected');
       return;
     }
 
-    // Start the conversation session
     try {
       console.log('Starting conversation session with token...');
       await conversation.startSession({
@@ -287,8 +288,6 @@ export function CreateRecipeButton() {
         },
       });
       console.log('Session started, waiting for connection...');
-      // Don't set mic muted here - wait for onConnect callback
-      // The microphone will be unmuted in onConnect/onStatusChange
     } catch (error: any) {
       console.error('Failed to start conversation:', error);
       setConversationError(error.message || 'Failed to start conversation');
@@ -299,13 +298,10 @@ export function CreateRecipeButton() {
   const handleEndConversation = async () => {
     try {
       if (connectionStatus === 'connected' || connectionStatus === 'connecting') {
-        // Set status to disconnecting to prevent error state updates
         setConnectionStatus('disconnected');
-        // End session - WebSocket closure errors are expected and will be ignored
         await conversation.endSession();
       }
     } catch (error: any) {
-      // Ignore errors during disconnection - they're usually WebSocket cleanup
       const errorMessage = error?.message || error?.toString() || '';
       if (!errorMessage.includes('WebSocket') && !errorMessage.includes('websocket')) {
         console.error('Failed to end conversation:', error);
@@ -317,11 +313,14 @@ export function CreateRecipeButton() {
     }
   };
 
-  const handleToggleMute = () => {
-    const newMutedState = !isMicMuted;
-    console.log('Toggling microphone mute:', newMutedState);
-    conversation.setMicMuted(newMutedState);
-    setIsMicMuted(newMutedState);
+  const handleCloseRecipeModal = () => {
+    setIsRecipeModalVisible(false);
+    setSavedRecipe(null);
+  };
+
+  const handleRemoveRecipe = () => {
+    setIsRecipeModalVisible(false);
+    setSavedRecipe(null);
   };
 
   const isConnected = connectionStatus === 'connected';
@@ -338,6 +337,7 @@ export function CreateRecipeButton() {
         <Text style={styles.buttonText}>Create New Recipe</Text>
       </TouchableOpacity>
 
+      {/* Voice Conversation Modal */}
       <Modal
         visible={isModalVisible}
         animationType="slide"
@@ -392,14 +392,12 @@ export function CreateRecipeButton() {
               </View>
             ) : (
               <View style={styles.conversationContainer}>
-                {/* Animated Voice Icon */}
                 <Animated.View style={[styles.voiceIconContainer, animatedStyle]}>
                   <Text style={styles.voiceIcon}>
                     {conversation.isSpeaking ? '🎙️' : '🎤'}
                   </Text>
                 </Animated.View>
 
-                {/* Messages List */}
                 <View style={styles.messagesContainer}>
                   <FlatList
                     ref={messagesEndRef}
@@ -425,7 +423,6 @@ export function CreateRecipeButton() {
                   />
                 </View>
 
-                {/* End Call Button */}
                 {isConnected && (
                   <TouchableOpacity 
                     style={styles.endButton} 
@@ -437,6 +434,34 @@ export function CreateRecipeButton() {
               </View>
             )}
           </View>
+        </View>
+      </Modal>
+
+      {/* Saved Recipe Modal */}
+      <Modal
+        visible={isRecipeModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleCloseRecipeModal}
+      >
+        <View style={styles.recipeModalContainer}>
+          <View style={styles.recipeModalHeader}>
+            <TouchableOpacity onPress={handleCloseRecipeModal} style={styles.recipeCloseButton}>
+              <Text style={styles.recipeCloseButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView 
+            style={styles.recipeModalContent}
+            contentContainerStyle={styles.recipeModalScrollContent}
+          >
+            {savedRecipe && (
+              <SavedRecipeCard
+                recipe={savedRecipe}
+                onRemove={handleRemoveRecipe}
+              />
+            )}
+          </ScrollView>
         </View>
       </Modal>
     </>
@@ -593,5 +618,37 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Recipe Modal Styles
+  recipeModalContainer: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  recipeModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.md,
+  },
+  recipeCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  recipeCloseButtonText: {
+    fontSize: 18,
+    color: Colors.textMuted,
+  },
+  recipeModalContent: {
+    flex: 1,
+  },
+  recipeModalScrollContent: {
+    padding: Spacing.lg,
+    paddingTop: Spacing.md,
   },
 });

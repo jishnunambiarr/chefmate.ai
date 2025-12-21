@@ -50,6 +50,12 @@ export function HomeScreen() {
             <View style={styles.centerContainer}>
               <Text style={styles.errorText}>Failed to load recipes</Text>
               <Text style={styles.errorSubtext}>{error.message}</Text>
+              
+              {(() => {
+                console.log('Error:', error.message);
+                return null;
+              })()}
+            
             </View>
           ) : recipes.length === 0 ? (
             <EmptyState />
