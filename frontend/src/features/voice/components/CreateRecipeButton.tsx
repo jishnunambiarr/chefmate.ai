@@ -65,6 +65,23 @@ export function CreateRecipeButton() {
       console.log('Disconnected from ElevenLabs conversation');
       setConnectionStatus('disconnected');
       setIsModalVisible(false);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/49dee237-f0b9-41f8-a1a6-0eceb8c9a5a9', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'initial',
+          hypothesisId: 'H2',
+          location: 'CreateRecipeButton.tsx:onDisconnect',
+          message: 'onDisconnect called after end of chat',
+          data: {
+            hasChatStartTime: !!chatStartTime,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       
       // Check for recently saved recipe when call ends
       if (user && chatStartTime) {
@@ -108,6 +125,25 @@ export function CreateRecipeButton() {
       const errorMessage = (typeof error === 'object' && error?.message) 
         ? String(error.message) 
         : (typeof error === 'string' ? error : String(error));
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/49dee237-f0b9-41f8-a1a6-0eceb8c9a5a9', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'initial',
+          hypothesisId: 'H1',
+          location: 'CreateRecipeButton.tsx:onError',
+          message: 'Conversation onError triggered',
+          data: {
+            errorType: typeof error,
+            errorToString: String(error),
+            errorMessage,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       const isWebSocketClosureError = 
         errorMessage.includes('WebSocket') ||
         errorMessage.includes('websocket') ||
@@ -133,6 +169,23 @@ export function CreateRecipeButton() {
       } else if (prop.status === 'disconnected') {
         setConnectionStatus('disconnected');
       }
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/49dee237-f0b9-41f8-a1a6-0eceb8c9a5a9', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'initial',
+          hypothesisId: 'H3',
+          location: 'CreateRecipeButton.tsx:onStatusChange',
+          message: 'Conversation status change',
+          data: {
+            status: prop.status,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
     },
     onModeChange: (mode) => {
       console.log('Conversation mode changed:', mode);
@@ -279,6 +332,24 @@ export function CreateRecipeButton() {
 
     try {
       console.log('Starting conversation session with token...');
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/49dee237-f0b9-41f8-a1a6-0eceb8c9a5a9', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'initial',
+          hypothesisId: 'H4',
+          location: 'CreateRecipeButton.tsx:handleStartConversation',
+          message: 'Starting conversation session',
+          data: {
+            hasToken: !!token,
+            userIdPresent: !!user?.uid,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       await conversation.startSession({
         conversationToken: token,
         dynamicVariables: {
@@ -298,11 +369,47 @@ export function CreateRecipeButton() {
   const handleEndConversation = async () => {
     try {
       if (connectionStatus === 'connected' || connectionStatus === 'connecting') {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/49dee237-f0b9-41f8-a1a6-0eceb8c9a5a9', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: 'debug-session',
+            runId: 'initial',
+            hypothesisId: 'H5',
+            location: 'CreateRecipeButton.tsx:handleEndConversation:beforeEndSession',
+            message: 'handleEndConversation about to call endSession',
+            data: {
+              connectionStatus,
+            },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
         setConnectionStatus('disconnected');
         await conversation.endSession();
       }
     } catch (error: any) {
       const errorMessage = error?.message || error?.toString() || '';
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/49dee237-f0b9-41f8-a1a6-0eceb8c9a5a9', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'initial',
+          hypothesisId: 'H6',
+          location: 'CreateRecipeButton.tsx:handleEndConversation:catch',
+          message: 'Error in handleEndConversation',
+          data: {
+            errorType: typeof error,
+            errorToString: String(error),
+            errorMessage,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
       if (!errorMessage.includes('WebSocket') && !errorMessage.includes('websocket')) {
         console.error('Failed to end conversation:', error);
       }
