@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 // #region agent log
 fetch('http://127.0.0.1:7242/ingest/05a29dec-4f79-4359-b311-1b867eb9c6b2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ProfileScreen.tsx:10',message:'LinearGradient import check',data:{imported:!!LinearGradient,type:typeof LinearGradient,isFunction:typeof LinearGradient==='function'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
@@ -59,49 +60,52 @@ export function ProfileScreen() {
         colors={[Colors.background, Colors.surface]}
         style={styles.gradient}
       >
-        <View style={styles.content}>
-          <View style={styles.avatarContainer}>
-            <Text style={styles.avatarEmoji}>👤</Text>
-          </View>
+        <SafeAreaView style={{ flex: 1 }}>
+          <View style={styles.content}>
+            <View style={styles.avatarContainer}>
+              <Text style={styles.avatarEmoji}>👤</Text>
+            </View>
 
-          <Text style={styles.title}>Profile</Text>
-          
-          <View style={styles.infoCard}>
-            <Text style={styles.label}>Email</Text>
-            <Text style={styles.value}>{user?.email || 'Not available'}</Text>
-          </View>
+            <Text style={styles.title}>Profile</Text>
+            
+            <View style={styles.infoCard}>
+              <Text style={styles.label}>Email</Text>
+              <Text style={styles.value}>{user?.email || 'Not available'}</Text>
+              <Text style={styles.label}>Account ID</Text>
+              <Text style={styles.value} numberOfLines={1}>
+                {user?.uid || 'Not available'}
+              </Text>
+              <Text style={styles.label}>Member Since</Text>
+              <Text style={styles.value}>
+                {user?.metadata.creationTime
+                  ? new Date(user.metadata.creationTime).toLocaleDateString()
+                  : 'Not available'}
+              </Text>
+            </View>
 
-          <View style={styles.infoCard}>
-            <Text style={styles.label}>Account ID</Text>
-            <Text style={styles.valueSmall} numberOfLines={1}>
-              {user?.uid || 'Not available'}
-            </Text>
-          </View>
+            <View style={styles.infoCard}>
+              
+            </View>
 
-          <View style={styles.infoCard}>
-            <Text style={styles.label}>Member Since</Text>
-            <Text style={styles.value}>
-              {user?.metadata.creationTime
-                ? new Date(user.metadata.creationTime).toLocaleDateString()
-                : 'Not available'}
-            </Text>
-          </View>
+            <View style={styles.infoCard}>
+              
+            </View>
 
-          <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={handleLogout}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color={Colors.white} />
-            ) : (
-              <>
-                <Text style={styles.logoutIcon}>🚪</Text>
-                <Text style={styles.logoutText}>Logout</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color={Colors.white} />
+              ) : (
+                <>
+                  <Text style={styles.logoutText}>Logout</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
       </LinearGradient>
     </View>
   );
@@ -117,7 +121,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xxl * 2,
+    paddingTop: Spacing.lg,
     alignItems: 'center',
   },
   avatarContainer: {
@@ -142,18 +146,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: '700',
-    color: Colors.white,
+    color: Colors.text,
     letterSpacing: 1,
     marginBottom: Spacing.xl,
   },
   infoCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.secondary,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     width: '100%',
     marginBottom: Spacing.md,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.secondary,
   },
   label: {
     fontSize: 12,
@@ -165,8 +167,9 @@ const styles = StyleSheet.create({
   },
   value: {
     fontSize: 16,
-    color: Colors.white,
+    color: Colors.text,
     fontWeight: '500',
+    marginBottom: Spacing.sm,
   },
   valueSmall: {
     fontSize: 14,
@@ -177,7 +180,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.error,
+    backgroundColor: Colors.accent,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     width: '100%',
@@ -188,7 +191,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   logoutText: {
-    color: Colors.white,
+    color: Colors.text,
     fontSize: 16,
     fontWeight: '600',
   },

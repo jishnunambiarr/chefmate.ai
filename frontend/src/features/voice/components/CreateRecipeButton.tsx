@@ -440,7 +440,6 @@ export function CreateRecipeButton() {
         onPress={handleStartConversation}
         disabled={isConnecting || isConnected}
       >
-        <Text style={styles.buttonIcon}>🎙️</Text>
         <Text style={styles.buttonText}>Create New Recipe</Text>
       </TouchableOpacity>
 

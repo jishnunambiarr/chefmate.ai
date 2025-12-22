@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Colors, Spacing, BorderRadius } from '@/shared/constants/theme';
@@ -49,7 +50,7 @@ export function RecipeDetailScreen() {
 
   if (error) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorIcon}>⚠️</Text>
           <Text style={styles.errorText}>{error}</Text>
@@ -57,17 +58,17 @@ export function RecipeDetailScreen() {
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (!recipe) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -79,7 +80,7 @@ export function RecipeDetailScreen() {
   });
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header with back button */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backArrow} onPress={handleGoBack}>
@@ -189,7 +190,7 @@ export function RecipeDetailScreen() {
           <Text style={styles.cookNowButtonText}>🍳 Cook Now</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

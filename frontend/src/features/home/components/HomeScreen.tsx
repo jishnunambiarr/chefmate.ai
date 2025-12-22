@@ -1,4 +1,5 @@
 import { StyleSheet, View, Text, FlatList, ActivityIndicator, Pressable } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 // #region agent log
 fetch('http://127.0.0.1:7242/ingest/05a29dec-4f79-4359-b311-1b867eb9c6b2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HomeScreen.tsx:2',message:'LinearGradient import check',data:{imported:!!LinearGradient,type:typeof LinearGradient,isFunction:typeof LinearGradient==='function'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
@@ -26,49 +27,48 @@ export function HomeScreen() {
         colors={[Colors.background, Colors.surface]}
         style={styles.gradient}
       >
-        <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logoEmoji}>👨‍🍳</Text>
-          </View>
-          <Text style={styles.title}>ChefMate.AI</Text>
-          <Text style={styles.subtitle}>Your personal AI cooking assistant</Text>
-          
-          <View style={styles.createButtonContainer}>
-            <CreateRecipeButton />
-          </View>
-        </View>
-
-        <View style={styles.content}>
-          <Text style={styles.sectionTitle}>Your Recipes</Text>
-          
-          {isLoading ? (
-            <View style={styles.centerContainer}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-              <Text style={styles.loadingText}>Loading recipes...</Text>
-            </View>
-          ) : error ? (
-            <View style={styles.centerContainer}>
-              <Text style={styles.errorText}>Failed to load recipes</Text>
-              <Text style={styles.errorSubtext}>{error.message}</Text>
-              
-              {(() => {
-                console.log('Error:', error.message);
-                return null;
-              })()}
+        <SafeAreaView style={{ flex: 1 }}>
+          <View style={styles.header}>
+            <Text style={styles.title}>ChefMate.AI</Text>
+            <Text style={styles.subtitle}>Your personal AI cooking assistant</Text>
             
+            <View style={styles.createButtonContainer}>
+              <CreateRecipeButton />
             </View>
-          ) : recipes.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <FlatList
-              data={recipes}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => <RecipeCard recipe={item} />}
-              contentContainerStyle={styles.recipeList}
-              showsVerticalScrollIndicator={false}
-            />
-          )}
-        </View>
+          </View>
+
+          <View style={styles.content}>
+            <Text style={styles.sectionTitle}>Your Recipes</Text>
+            
+            {isLoading ? (
+              <View style={styles.centerContainer}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+                <Text style={styles.loadingText}>Loading recipes...</Text>
+              </View>
+            ) : error ? (
+              <View style={styles.centerContainer}>
+                <Text style={styles.errorText}>Failed to load recipes</Text>
+                <Text style={styles.errorSubtext}>{error.message}</Text>
+                
+                {(() => {
+                  console.log('Error:', error.message);
+                  return null;
+                })()}
+              
+              </View>
+            ) : recipes.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <FlatList
+                data={recipes}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => <RecipeCard recipe={item} />}
+                contentContainerStyle={styles.recipeList}
+                showsVerticalScrollIndicator={false}
+              />
+            )}
+          </View>
+        </SafeAreaView>
       </LinearGradient>
     </View>
   );
@@ -99,7 +99,7 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
       <View style={styles.recipeHeader}>
         <Text style={styles.recipeTitle} numberOfLines={1}>{recipe.title}</Text>
         {totalTime > 0 && (
-          <Text style={styles.recipeTime}>⏱️ {totalTime} min</Text>
+          <Text style={styles.recipeTime}>⏰ {totalTime} min</Text>
         )}
       </View>
       <Text style={styles.recipeDescription} numberOfLines={2}>
@@ -107,10 +107,10 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
       </Text>
       <View style={styles.recipeFooter}>
         {recipe.servings && (
-          <Text style={styles.recipeMeta}>🍽️ {recipe.servings} servings</Text>
+          <Text style={styles.recipeMeta}>👤 {recipe.servings} servings</Text>
         )}
         <Text style={styles.recipeMeta}>
-          🥘 {recipe.ingredients.length} ingredients
+        🥘 {recipe.ingredients.length} ingredients
         </Text>
       </View>
     </Pressable>
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xxl,
+    paddingTop: Spacing.lg,
     alignItems: 'center',
   },
   logoContainer: {
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: Colors.white,
+    color: Colors.text,
     letterSpacing: 1,
     marginBottom: Spacing.xs,
   },
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.white,
+    color: Colors.text,
     marginBottom: Spacing.md,
   },
   centerContainer: {
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 22,
     fontWeight: '600',
-    color: Colors.white,
+    color: Colors.text,
     marginBottom: Spacing.sm,
   },
   emptyText: {
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   },
   featureItem: {
     alignItems: 'center',
-    backgroundColor: Colors.surfaceLight,
+    backgroundColor: Colors.accent,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.md,
@@ -250,12 +250,10 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xl,
   },
   recipeCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.secondary,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.primary,
   },
   recipeHeader: {
     flexDirection: 'row',
@@ -266,13 +264,13 @@ const styles = StyleSheet.create({
   recipeTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.white,
+    color: Colors.text,
     flex: 1,
     marginRight: Spacing.sm,
   },
   recipeTime: {
     fontSize: 13,
-    color: Colors.secondary,
+    color: Colors.text,
     fontWeight: '500',
   },
   recipeDescription: {
