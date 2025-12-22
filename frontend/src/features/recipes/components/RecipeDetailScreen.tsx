@@ -20,7 +20,7 @@ export function RecipeDetailScreen() {
 
   useEffect(() => {
     try {
-      const recipeParam = params.recipe as string;
+      const recipeParam = params.recipe as string | undefined;
       if (recipeParam) {
         const parsed = JSON.parse(recipeParam);
         setRecipe({
@@ -34,7 +34,7 @@ export function RecipeDetailScreen() {
       console.error('Failed to parse recipe:', err);
       setError('Invalid recipe data');
     }
-  }, [params]);
+  }, [params.recipe]);
 
   const handleCookNow = () => {
     // TODO: Implement cook now functionality
@@ -82,20 +82,20 @@ export function RecipeDetailScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header with back button */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backArrow} onPress={handleGoBack}>
-          <Text style={styles.backArrowText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {recipe.title}
-        </Text>
-        <View style={styles.headerSpacer} />
-      </View>
+      
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Title & Description */}
         <View style={styles.titleSection}>
-          <Text style={styles.title}>{recipe.title}</Text>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {recipe.title}
+            </Text>
+            <TouchableOpacity style={styles.backArrow} onPress={handleGoBack}>
+              <Text style={styles.backArrowText}>✖️</Text>
+            </TouchableOpacity>
+          </View>
+        
           {recipe.description && (
             <Text style={styles.description}>{recipe.description}</Text>
           )}
@@ -106,7 +106,7 @@ export function RecipeDetailScreen() {
         <View style={styles.infoCardsContainer}>
           {recipe.prepTime !== undefined && recipe.prepTime > 0 && (
             <View style={styles.infoCard}>
-              <Text style={styles.infoCardIcon}>⏱️</Text>
+              <Text style={styles.infoCardIcon}>🔪</Text>
               <Text style={styles.infoCardValue}>{recipe.prepTime} min</Text>
               <Text style={styles.infoCardLabel}>Prep Time</Text>
             </View>
@@ -127,7 +127,7 @@ export function RecipeDetailScreen() {
           )}
           {recipe.servings !== undefined && recipe.servings > 0 && (
             <View style={styles.infoCard}>
-              <Text style={styles.infoCardIcon}>🍽️</Text>
+              <Text style={styles.infoCardIcon}>👤</Text>
               <Text style={styles.infoCardValue}>{recipe.servings}</Text>
               <Text style={styles.infoCardLabel}>Servings</Text>
             </View>
@@ -137,7 +137,7 @@ export function RecipeDetailScreen() {
         {/* Ingredients Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionIcon}>🥗</Text>
+            
             <Text style={styles.sectionTitle}>Ingredients</Text>
             <Text style={styles.sectionCount}>{recipe.ingredients.length} items</Text>
           </View>
@@ -154,7 +154,6 @@ export function RecipeDetailScreen() {
         {/* Instructions Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionIcon}>📝</Text>
             <Text style={styles.sectionTitle}>Instructions</Text>
             <Text style={styles.sectionCount}>{recipe.instructions.length} steps</Text>
           </View>
@@ -187,7 +186,7 @@ export function RecipeDetailScreen() {
           style={[styles.actionButton, styles.cookNowButton]}
           onPress={handleCookNow}
         >
-          <Text style={styles.cookNowButtonText}>🍳 Cook Now</Text>
+          <Text style={styles.cookNowButtonText}>Cook Now</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -227,43 +226,40 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
   },
   backButtonText: {
-    color: Colors.white,
+    color: Colors.text,
     fontSize: 16,
     fontWeight: '600',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.xl,
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.sm,
+    paddingTop: Spacing.lg,
     paddingBottom: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.surfaceLight,
   },
   backArrow: {
     padding: Spacing.sm,
   },
   backArrowText: {
     fontSize: 24,
-    color: Colors.white,
+    color: Colors.text,
   },
   headerTitle: {
     flex: 1,
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: '600',
-    color: Colors.white,
+    color: Colors.text,
     textAlign: 'center',
     marginHorizontal: Spacing.sm,
   },
-  headerSpacer: {
-    width: 40,
-  },
+  
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
   },
   titleSection: {
     marginBottom: Spacing.lg,
@@ -306,12 +302,14 @@ const styles = StyleSheet.create({
   infoCardValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.white,
+    color: Colors.text,
+    textAlign: 'center',
   },
   infoCardLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: Colors.textMuted,
     marginTop: 2,
+    textAlign: 'center',
   },
   section: {
     marginBottom: Spacing.xl,
@@ -328,7 +326,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: Colors.white,
+    color: Colors.text,
     flex: 1,
   },
   sectionCount: {
@@ -340,7 +338,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
   },
   ingredientsList: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.secondary,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
   },
@@ -360,7 +358,7 @@ const styles = StyleSheet.create({
   ingredientText: {
     flex: 1,
     fontSize: 16,
-    color: Colors.white,
+    color: Colors.text,
     lineHeight: 24,
   },
   instructionsList: {
@@ -369,7 +367,7 @@ const styles = StyleSheet.create({
   instructionItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.secondary,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
   },
@@ -385,12 +383,12 @@ const styles = StyleSheet.create({
   stepNumberText: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.white,
+    color: Colors.text,
   },
   instructionText: {
     flex: 1,
     fontSize: 16,
-    color: Colors.white,
+    color: Colors.text,
     lineHeight: 24,
   },
   buttonSpacer: {
@@ -417,14 +415,12 @@ const styles = StyleSheet.create({
     minHeight: 52,
   },
   unsaveButton: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.error,
+    backgroundColor: Colors.accent,
   },
   unsaveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.error,
+    color: Colors.white,
   },
   cookNowButton: {
     backgroundColor: Colors.primary,

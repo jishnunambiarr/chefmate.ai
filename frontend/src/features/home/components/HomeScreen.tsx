@@ -1,4 +1,5 @@
 import { StyleSheet, View, Text, FlatList, ActivityIndicator, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
 // #region agent log
@@ -92,10 +93,26 @@ function EmptyState() {
 }
 
 function RecipeCard({ recipe }: { recipe: Recipe }) {
+  const router = useRouter();
   const totalTime = (recipe.prepTime || 0) + (recipe.cookTime || 0);
   
   return (
-    <Pressable style={styles.recipeCard}>
+    <Pressable
+      style={styles.recipeCard}
+      onPress={() =>
+        router.push({
+          // Cast to relax strict route typing for this dynamic screen
+          pathname: '/recipe-detail' as any,
+          params: {
+            // Serialize date for navigation; parsed back in RecipeDetailScreen
+            recipe: JSON.stringify({
+              ...recipe,
+              createdAt: recipe.createdAt.toISOString(),
+            }),
+          },
+        })
+      }
+    >
       <View style={styles.recipeHeader}>
         <Text style={styles.recipeTitle} numberOfLines={1}>{recipe.title}</Text>
         {totalTime > 0 && (
