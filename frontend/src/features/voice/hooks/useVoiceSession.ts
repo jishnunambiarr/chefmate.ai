@@ -8,6 +8,8 @@ interface VoiceSessionState {
   error: string | null;
 }
 
+export type AgentType = 'discover' | 'cook';
+
 export function useVoiceSession() {
   const [state, setState] = useState<VoiceSessionState>({
     token: null,
@@ -15,7 +17,7 @@ export function useVoiceSession() {
     error: null,
   });
 
-  const fetchConversationToken = useCallback(async (): Promise<string | null> => {
+  const fetchConversationToken = useCallback(async (agentType: AgentType = 'discover'): Promise<string | null> => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
@@ -26,8 +28,10 @@ export function useVoiceSession() {
 
       const idToken = await user.getIdToken();
       
-      const url = `${API_BASE_URL}/elevenlabs/conversation-token`;
-      console.log('Fetching conversation token from:', url);
+      // Use different endpoint based on agent type
+      const endpoint = agentType === 'cook' ? 'conversation-token-cook' : 'conversation-token';
+      const url = `${API_BASE_URL}/elevenlabs/${endpoint}`;
+      console.log(`Fetching conversation token from: ${url} (agent: ${agentType})`);
       
       const response = await fetch(url, {
         method: 'GET',

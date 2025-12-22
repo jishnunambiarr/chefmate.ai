@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 36,
     fontWeight: '700',
-    color: Colors.white,
+    color: Colors.text,
     letterSpacing: 1,
     marginBottom: Spacing.xs,
   },

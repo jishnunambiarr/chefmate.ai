@@ -28,7 +28,7 @@ export function HomeScreen() {
         colors={[Colors.background, Colors.surface]}
         style={styles.gradient}
       >
-        <SafeAreaView style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1 }} edges={['top']}>
           <View style={styles.header}>
             <Text style={styles.title}>ChefMate.AI</Text>
             <Text style={styles.subtitle}>Your personal AI cooking assistant</Text>
@@ -83,11 +83,6 @@ function EmptyState() {
       <Text style={styles.emptyText}>
         Tap the button above to start a voice conversation and create your first recipe!
       </Text>
-      <View style={styles.featuresContainer}>
-        <FeatureItem icon="🍳" text="Smart Recipes" />
-        <FeatureItem icon="🥗" text="Meal Planning" />
-        <FeatureItem icon="🛒" text="Shopping Lists" />
-      </View>
     </View>
   );
 }
@@ -134,14 +129,6 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
   );
 }
 
-function FeatureItem({ icon, text }: { icon: string; text: string }) {
-  return (
-    <View style={styles.featureItem}>
-      <Text style={styles.featureIcon}>{icon}</Text>
-      <Text style={styles.featureText}>{text}</Text>
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
   container: {

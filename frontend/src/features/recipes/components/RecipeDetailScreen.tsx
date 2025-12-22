@@ -5,18 +5,23 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Colors, Spacing, BorderRadius } from '@/shared/constants/theme';
 import { Recipe } from '@/shared/types/recipe';
+import { deleteRecipe } from '@/shared/services/recipeService';
+import { VoiceChatModal } from '@/features/voice/components/VoiceChatModal';
 
 export function RecipeDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCookModalVisible, setIsCookModalVisible] = useState(false);
 
   useEffect(() => {
     try {
@@ -37,11 +42,45 @@ export function RecipeDetailScreen() {
   }, [params.recipe]);
 
   const handleCookNow = () => {
-    // TODO: Implement cook now functionality
+    setIsCookModalVisible(true);
   };
 
   const handleUnsave = () => {
-    // TODO: Implement unsave functionality
+    if (!recipe || !recipe.id) {
+      Alert.alert('Error', 'Recipe ID is missing');
+      return;
+    }
+
+    Alert.alert(
+      'Delete Recipe',
+      'Are you sure you want to delete this recipe? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              await deleteRecipe(recipe.id);
+              // Navigate back after successful deletion
+              router.back();
+            } catch (err) {
+              console.error('Failed to delete recipe:', err);
+              Alert.alert(
+                'Error',
+                'Failed to delete recipe. Please try again.'
+              );
+            } finally {
+              setIsDeleting(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleGoBack = () => {
@@ -92,7 +131,7 @@ export function RecipeDetailScreen() {
               {recipe.title}
             </Text>
             <TouchableOpacity style={styles.backArrow} onPress={handleGoBack}>
-              <Text style={styles.backArrowText}>✖️</Text>
+              <Text style={styles.backArrowText}>✕</Text>
             </TouchableOpacity>
           </View>
         
@@ -178,8 +217,13 @@ export function RecipeDetailScreen() {
         <TouchableOpacity
           style={[styles.actionButton, styles.unsaveButton]}
           onPress={handleUnsave}
+          disabled={isDeleting}
         >
-          <Text style={styles.unsaveButtonText}>Unsave</Text>
+          {isDeleting ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <Text style={styles.unsaveButtonText}>Unsave</Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -189,6 +233,17 @@ export function RecipeDetailScreen() {
           <Text style={styles.cookNowButtonText}>Cook Now</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Cook Agent Voice Chat Modal */}
+      {recipe && (
+        <VoiceChatModal
+          visible={isCookModalVisible}
+          onClose={() => setIsCookModalVisible(false)}
+          agentType="cook"
+          recipe={recipe}
+          title="Cook with AI Assistant"
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -234,8 +289,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.sm,
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.sm,
     paddingBottom: Spacing.md,
   },
   backArrow: {
@@ -246,12 +300,10 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   headerTitle: {
-    flex: 1,
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '700',
     color: Colors.text,
     textAlign: 'center',
-    marginHorizontal: Spacing.sm,
   },
   
   scrollView: {
@@ -332,7 +384,6 @@ const styles = StyleSheet.create({
   sectionCount: {
     fontSize: 12,
     color: Colors.textMuted,
-    backgroundColor: Colors.surface,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: BorderRadius.sm,

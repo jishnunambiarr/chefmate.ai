@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { useConversation } from '@elevenlabs/react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -22,9 +21,7 @@ import Animated, {
 import { useVoiceSession } from '../hooks/useVoiceSession';
 import { useAuth } from '@/shared/context/AuthContext';
 import { Colors, Spacing, BorderRadius } from '@/shared/constants/theme';
-import { SavedRecipeCard } from './SavedRecipeCard';
 import { Recipe } from '@/shared/types/recipe';
-import { getUserRecipes } from '@/shared/services/recipeService';
 
 interface Message {
   id: string;
@@ -33,18 +30,27 @@ interface Message {
   timestamp: number;
 }
 
-export function CreateRecipeButton() {
-  const [isModalVisible, setIsModalVisible] = useState(false);
+interface VoiceChatModalProps {
+  visible: boolean;
+  onClose: () => void;
+  agentType: 'discover' | 'cook';
+  recipe?: Recipe | null;
+  title?: string;
+}
+
+export function VoiceChatModal({ 
+  visible, 
+  onClose, 
+  agentType,
+  recipe,
+  title = 'Voice Recipe Creation'
+}: VoiceChatModalProps) {
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [conversationError, setConversationError] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [chatStartTime, setChatStartTime] = useState<Date | null>(null);
-  const [savedRecipe, setSavedRecipe] = useState<Recipe | null>(null);
-  const [isRecipeModalVisible, setIsRecipeModalVisible] = useState(false);
   
-  const router = useRouter();
   const { user } = useAuth();
   const { fetchConversationToken, isLoading: isTokenLoading, error: tokenError } = useVoiceSession();
   const messagesEndRef = useRef<FlatList>(null);
@@ -52,7 +58,7 @@ export function CreateRecipeButton() {
   
   const conversation = useConversation({
     onConnect: () => {
-      console.log('Connected to ElevenLabs conversation');
+      console.log(`Connected to ElevenLabs conversation (${agentType})`);
       setConnectionStatus('connected');
       setConversationError(null);
       setTimeout(() => {
@@ -62,14 +68,9 @@ export function CreateRecipeButton() {
       }, 500);
     },
     onDisconnect: async () => {
-      console.log('Disconnected from ElevenLabs conversation');
+      console.log(`Disconnected from ElevenLabs conversation (${agentType})`);
       setConnectionStatus('disconnected');
-      setIsModalVisible(false);
-      
-      // Check for recently saved recipe when call ends
-      if (user && chatStartTime) {
-        await checkForRecentRecipe();
-      }
+      onClose();
     },
     onMessage: (message: any) => {
       try {
@@ -108,25 +109,7 @@ export function CreateRecipeButton() {
       const errorMessage = (typeof error === 'object' && error?.message) 
         ? String(error.message) 
         : (typeof error === 'string' ? error : String(error));
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/49dee237-f0b9-41f8-a1a6-0eceb8c9a5a9', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: 'debug-session',
-          runId: 'initial',
-          hypothesisId: 'H1',
-          location: 'CreateRecipeButton.tsx:onError',
-          message: 'Conversation onError triggered',
-          data: {
-            errorType: typeof error,
-            errorToString: String(error),
-            errorMessage,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
+      
       const isWebSocketClosureError = 
         errorMessage.includes('WebSocket') ||
         errorMessage.includes('websocket') ||
@@ -152,77 +135,20 @@ export function CreateRecipeButton() {
       } else if (prop.status === 'disconnected') {
         setConnectionStatus('disconnected');
       }
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/49dee237-f0b9-41f8-a1a6-0eceb8c9a5a9', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: 'debug-session',
-          runId: 'initial',
-          hypothesisId: 'H3',
-          location: 'CreateRecipeButton.tsx:onStatusChange',
-          message: 'Conversation status change',
-          data: {
-            status: prop.status,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
     },
     onModeChange: (mode) => {
       console.log('Conversation mode changed:', mode);
     },
   });
 
-  // Check for recipe created within last 1 minute
-  const checkForRecentRecipe = async () => {
-    if (!user) return;
-
-    try {
-      const recipes = await getUserRecipes(user.uid);
-      const now = new Date();
-      const oneMinuteAgo = new Date(now.getTime() - 1 * 60 * 1000);
-
-      // Filter recipes created within the last 1 minute and sort by createdAt descending
-      const recentRecipes = recipes
-        .filter((recipe) => {
-          const recipeCreatedAt = recipe.createdAt;
-          return recipeCreatedAt >= oneMinuteAgo && recipeCreatedAt <= now;
-        })
-        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
-      // Get the latest recipe (first one after sorting)
-      const recentRecipe = recentRecipes[0];
-
-      if (recentRecipe) {
-        console.log('Found recent recipe:', recentRecipe.title);
-        setSavedRecipe(recentRecipe);
-        setIsRecipeModalVisible(true);
-      } else {
-        console.log('No recent recipe found');
-      }
-    } catch (error) {
-      console.error('Error checking for recent recipe:', error);
-    }
-  };
-
   // Reset state when modal closes
   useEffect(() => {
-    if (!isModalVisible && connectionStatus === 'disconnected') {
+    if (!visible && connectionStatus === 'disconnected') {
       setConversationError(null);
       setPermissionGranted(null);
       setMessages([]);
-      setChatStartTime(null);
     }
-  }, [isModalVisible, connectionStatus]);
-
-  // Set chat start time when modal opens
-  useEffect(() => {
-    if (isModalVisible && user) {
-      setChatStartTime(new Date());
-    }
-  }, [isModalVisible, user]);
+  }, [visible, connectionStatus]);
 
   // Animate voice icon when agent is speaking
   useEffect(() => {
@@ -309,24 +235,40 @@ export function CreateRecipeButton() {
       return;
     }
 
-    setIsModalVisible(true);
     setConnectionStatus('connecting');
 
-    const token = await fetchConversationToken();
+    const token = await fetchConversationToken(agentType);
     if (!token) {
       setConnectionStatus('disconnected');
       return;
     }
 
     try {
-      console.log('Starting conversation session with token...');
+      console.log(`Starting conversation session with token (${agentType})...`);
+      
+      // Prepare dynamic variables
+      const dynamicVariables: Record<string, any> = {
+        user_id: user?.uid || '',
+        diet: "None",
+        temperatur: "Celcius"
+      };
+
+      // Add recipe data if this is the cook agent
+      if (agentType === 'cook' && recipe) {
+        dynamicVariables.recipe = JSON.stringify({
+          title: recipe.title,
+          description: recipe.description,
+          ingredients: recipe.ingredients,
+          instructions: recipe.instructions,
+          prepTime: recipe.prepTime,
+          cookTime: recipe.cookTime,
+          servings: recipe.servings,
+        });
+      }
+
       await conversation.startSession({
         conversationToken: token,
-        dynamicVariables: {
-          user_id: user?.uid || '',
-          diet: "None",
-          temperatur: "Celcius"
-        },
+        dynamicVariables,
       });
       console.log('Session started, waiting for connection...');
     } catch (error: any) {
@@ -339,7 +281,6 @@ export function CreateRecipeButton() {
   const handleEndConversation = async () => {
     try {
       if (connectionStatus === 'connected' || connectionStatus === 'connecting') {
-        // setConnectionStatus('disconnected');
         await conversation.endSession();
       }
     } catch (error: any) {
@@ -349,190 +290,127 @@ export function CreateRecipeButton() {
       }
     } finally {
       setConnectionStatus('disconnected');
-      setIsModalVisible(false);
+      onClose();
       setConversationError(null);
     }
   };
 
-  const handleCloseRecipeModal = () => {
-    setIsRecipeModalVisible(false);
-    setSavedRecipe(null);
-  };
-
-  const handleRemoveRecipe = () => {
-    setIsRecipeModalVisible(false);
-    setSavedRecipe(null);
-  };
+  // Auto-start conversation when modal opens
+  useEffect(() => {
+    if (visible && connectionStatus === 'disconnected' && !isTokenLoading && permissionGranted !== false) {
+      handleStartConversation();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   const isConnected = connectionStatus === 'connected';
   const isConnecting = connectionStatus === 'connecting';
 
   return (
-    <>
-      <TouchableOpacity 
-        style={styles.button} 
-        onPress={handleStartConversation}
-        disabled={isConnecting || isConnected}
-      >
-        <Text style={styles.buttonText}>Create New Recipe</Text>
-      </TouchableOpacity>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={handleEndConversation}
+    >
+      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{title}</Text>
+            <TouchableOpacity onPress={handleEndConversation} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
 
-      {/* Voice Conversation Modal */}
-      <Modal
-        visible={isModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={handleEndConversation}
-      >
-        <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Voice Recipe Creation</Text>
-              <TouchableOpacity onPress={handleEndConversation} style={styles.closeButton}>
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalContent}>
-              {isTokenLoading || isConnecting ? (
-                <View style={styles.statusContainer}>
-                  <ActivityIndicator size="large" color={Colors.primary} />
-                  <Text style={styles.statusText}>
-                    {isTokenLoading ? 'Initializing session...' : 'Connecting...'}
+          <View style={styles.modalContent}>
+            {isTokenLoading || isConnecting ? (
+              <View style={styles.statusContainer}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+                <Text style={styles.statusText}>
+                  {isTokenLoading ? 'Initializing session...' : 'Connecting...'}
+                </Text>
+              </View>
+            ) : tokenError ? (
+              <View style={styles.statusContainer}>
+                <Text style={styles.errorIcon}>⚠️</Text>
+                <Text style={styles.errorText}>{tokenError}</Text>
+                <TouchableOpacity style={styles.retryButton} onPress={handleStartConversation}>
+                  <Text style={styles.retryButtonText}>Try Again</Text>
+                </TouchableOpacity>
+              </View>
+            ) : conversationError ? (
+              <View style={styles.statusContainer}>
+                <Text style={styles.errorIcon}>⚠️</Text>
+                <Text style={styles.errorText}>{conversationError}</Text>
+                <TouchableOpacity style={styles.retryButton} onPress={handleStartConversation}>
+                  <Text style={styles.retryButtonText}>Try Again</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.retryButton, styles.secondaryButton]} 
+                  onPress={handleEndConversation}
+                >
+                  <Text style={styles.retryButtonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            ) : permissionGranted === false ? (
+              <View style={styles.statusContainer}>
+                <Text style={styles.errorIcon}>🎤</Text>
+                <Text style={styles.errorText}>Microphone permission is required</Text>
+                <TouchableOpacity style={styles.retryButton} onPress={handleStartConversation}>
+                  <Text style={styles.retryButtonText}>Grant Permission</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.conversationContainer}>
+                <Animated.View style={[styles.voiceIconContainer, animatedStyle]}>
+                  <Text style={styles.voiceIcon}>
+                    {conversation.isSpeaking ? '🎙️' : '🎤'}
                   </Text>
+                </Animated.View>
+
+                <View style={styles.messagesContainer}>
+                  <FlatList
+                    ref={messagesEndRef}
+                    data={messages}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                      <View style={[
+                        styles.messageBubble,
+                        item.sender === 'user' ? styles.userMessage : styles.agentMessage
+                      ]}>
+                        <Text style={[
+                          styles.messageText,
+                          item.sender === 'user' ? styles.userMessageText : styles.agentMessageText
+                        ]}>
+                          {item.text}
+                        </Text>
+                      </View>
+                    )}
+                    contentContainerStyle={styles.messagesContent}
+                    onContentSizeChange={() => {
+                      messagesEndRef.current?.scrollToEnd({ animated: true });
+                    }}
+                  />
                 </View>
-              ) : tokenError ? (
-                <View style={styles.statusContainer}>
-                  <Text style={styles.errorIcon}>⚠️</Text>
-                  <Text style={styles.errorText}>{tokenError}</Text>
-                  <TouchableOpacity style={styles.retryButton} onPress={handleStartConversation}>
-                    <Text style={styles.retryButtonText}>Try Again</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : conversationError ? (
-                <View style={styles.statusContainer}>
-                  <Text style={styles.errorIcon}>⚠️</Text>
-                  <Text style={styles.errorText}>{conversationError}</Text>
-                  <TouchableOpacity style={styles.retryButton} onPress={handleStartConversation}>
-                    <Text style={styles.retryButtonText}>Try Again</Text>
-                  </TouchableOpacity>
+
+                {isConnected && (
                   <TouchableOpacity 
-                    style={[styles.retryButton, styles.secondaryButton]} 
+                    style={styles.endButton} 
                     onPress={handleEndConversation}
                   >
-                    <Text style={styles.retryButtonText}>Close</Text>
+                    <Text style={styles.endButtonText}>End Call</Text>
                   </TouchableOpacity>
-                </View>
-              ) : permissionGranted === false ? (
-                <View style={styles.statusContainer}>
-                  <Text style={styles.errorIcon}>🎤</Text>
-                  <Text style={styles.errorText}>Microphone permission is required</Text>
-                  <TouchableOpacity style={styles.retryButton} onPress={handleStartConversation}>
-                    <Text style={styles.retryButtonText}>Grant Permission</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={styles.conversationContainer}>
-                  <Animated.View style={[styles.voiceIconContainer, animatedStyle]}>
-                    <Text style={styles.voiceIcon}>
-                      {conversation.isSpeaking ? '🎙️' : '🎤'}
-                    </Text>
-                  </Animated.View>
-
-                  <View style={styles.messagesContainer}>
-                    <FlatList
-                      ref={messagesEndRef}
-                      data={messages}
-                      keyExtractor={(item) => item.id}
-                      renderItem={({ item }) => (
-                        <View style={[
-                          styles.messageBubble,
-                          item.sender === 'user' ? styles.userMessage : styles.agentMessage
-                        ]}>
-                          <Text style={[
-                            styles.messageText,
-                            item.sender === 'user' ? styles.userMessageText : styles.agentMessageText
-                          ]}>
-                            {item.text}
-                          </Text>
-                        </View>
-                      )}
-                      contentContainerStyle={styles.messagesContent}
-                      onContentSizeChange={() => {
-                        messagesEndRef.current?.scrollToEnd({ animated: true });
-                      }}
-                    />
-                  </View>
-
-                  {isConnected && (
-                    <TouchableOpacity 
-                      style={styles.endButton} 
-                      onPress={handleEndConversation}
-                    >
-                      <Text style={styles.endButtonText}>End Call</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-            </View>
+                )}
+              </View>
+            )}
           </View>
-        </SafeAreaView>
-      </Modal>
-
-      {/* Saved Recipe Modal */}
-      <Modal
-        visible={isRecipeModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={handleCloseRecipeModal}
-      >
-        <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
-          <View style={styles.recipeModalContainer}>
-            <View style={styles.recipeModalHeader}>
-              <TouchableOpacity onPress={handleCloseRecipeModal} style={styles.recipeCloseButton}>
-                <Text style={styles.recipeCloseButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.recipeModalContent}>
-              {savedRecipe && (
-                <SavedRecipeCard
-                  recipe={savedRecipe}
-                  onRemove={handleRemoveRecipe}
-                />
-              )}
-            </View>
-          </View>
-        </SafeAreaView>
-      </Modal>
-    </>
+        </View>
+      </SafeAreaView>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    gap: Spacing.sm,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  buttonIcon: {
-    fontSize: 24,
-  },
-  buttonText: {
-    color: Colors.white,
-    fontSize: 18,
-    fontWeight: '600',
-  },
   modalContainer: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -569,6 +447,8 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   statusContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
     gap: Spacing.md,
   },
@@ -660,33 +540,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  // Recipe Modal Styles
-  recipeModalContainer: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  recipeModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-  },
-  recipeCloseButton: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  recipeCloseButtonText: {
-    fontSize: 20,
-    color: Colors.textMuted,
-  },
-  recipeModalContent: {
-    
-    padding: Spacing.lg,
-    paddingTop: Spacing.md,
-  },
 });
+

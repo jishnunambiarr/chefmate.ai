@@ -1,8 +1,10 @@
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Recipe } from '@/shared/types/recipe';
 import { Colors, Spacing, BorderRadius } from '@/shared/constants/theme';
 import { deleteRecipe } from '@/shared/services/recipeService';
+import { VoiceChatModal } from './VoiceChatModal';
 
 interface SavedRecipeCardProps {
   recipe: Recipe;
@@ -11,68 +13,121 @@ interface SavedRecipeCardProps {
 
 export function SavedRecipeCard({ recipe, onRemove }: SavedRecipeCardProps) {
   const router = useRouter();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCookModalVisible, setIsCookModalVisible] = useState(false);
   const totalTime = (recipe.prepTime || 0) + (recipe.cookTime || 0);
 
   const handleCookNow = () => {
-    router.push({
-      pathname: '/(tabs)/recipe-display',
-      params: {
-        recipe: JSON.stringify(recipe),
-      },
-    });
+    setIsCookModalVisible(true);
   };
 
-  const handleRemove = async () => {
-    try {
-      await deleteRecipe(recipe.id);
-      onRemove?.();
-    } catch (error) {
-      console.error('Failed to remove recipe:', error);
+  const handleRemove = () => {
+    if (!recipe || !recipe.id) {
+      Alert.alert('Error', 'Recipe ID is missing');
+      return;
     }
+
+    Alert.alert(
+      'Delete Recipe',
+      'Are you sure you want to delete this recipe? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              await deleteRecipe(recipe.id);
+              // Close the modal after successful deletion
+              onRemove?.();
+            } catch (err) {
+              console.error('Failed to delete recipe:', err);
+              Alert.alert(
+                'Error',
+                'Failed to delete recipe. Please try again.'
+              );
+            } finally {
+              setIsDeleting(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
-    <View style={styles.card}>
-      {/* Success message */}
-      <Text style={styles.successMessage}>
-        The recipe has been saved successfully!
-      </Text>
+    <>
+      <View style={styles.card}>
+        {/* Success message */}
+        <Text style={styles.successMessage}>
+          The recipe has been saved successfully!
+        </Text>
 
-      {/* Recipe Info */}
-      <View style={styles.content}>
-        <Text style={styles.title}>{recipe.title}</Text>
-        
-        {recipe.description && (
-          <Text style={styles.description} numberOfLines={2}>
-            {recipe.description}
-          </Text>
-        )}
+        {/* Recipe Info */}
+        <View style={styles.content}>
+          <Text style={styles.title}>{recipe.title}</Text>
+          
+          {recipe.description && (
+            <Text style={styles.description}>
+              {recipe.description}
+            </Text>
+          )}
 
-        {totalTime > 0 && (
-          <View style={styles.timeContainer}>
-            <Text style={styles.timeLabel}>Total cooking time:</Text>
-            <Text style={styles.timeValue}>{totalTime} min</Text>
-          </View>
-        )}
+         {recipe.ingredients.length > 0 && (
+            <Text style={styles.ingredientsList}>
+              {recipe.ingredients.map((ingredient, index) => (
+                <View key={index} style={styles.ingredientItem}>
+                <View style={styles.ingredientBullet} />
+                <Text style={styles.ingredientText}>{ingredient}</Text>
+              </View>
+              ))}
+            </Text>
+          )}
+
+          {totalTime > 0 && (
+            <View style={styles.timeContainer}>
+              <Text style={styles.timeLabel}>Total cooking time:</Text>
+              <Text style={styles.timeValue}>{totalTime} min</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity
+            style={[styles.button, styles.cookButton]}
+            onPress={handleCookNow}
+          >
+            <Text style={styles.cookButtonText}>Cook now</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, styles.removeButton]}
+            onPress={handleRemove}
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <ActivityIndicator size="small" color={Colors.white} />
+            ) : (
+              <Text style={styles.removeButtonText}>Remove from saved</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Action Buttons */}
-      <View style={styles.actionsContainer}>
-        <TouchableOpacity
-          style={[styles.button, styles.cookButton]}
-          onPress={handleCookNow}
-        >
-          <Text style={styles.cookButtonText}>Cook now</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.button, styles.removeButton]}
-          onPress={handleRemove}
-        >
-          <Text style={styles.removeButtonText}>Remove from saved</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+      {/* Cook Agent Voice Chat Modal */}
+      <VoiceChatModal
+        visible={isCookModalVisible}
+        onClose={() => setIsCookModalVisible(false)}
+        agentType="cook"
+        recipe={recipe}
+        title="Cook with AI Assistant"
+      />
+    </>
   );
 }
 
@@ -86,7 +141,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.surfaceLight,
   },
   successMessage: {
-    fontSize: 13,
+    fontSize: 16,
     color: Colors.textMuted,
     marginBottom: Spacing.sm,
     fontStyle: 'italic',
@@ -95,13 +150,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.white,
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.text,
     marginBottom: Spacing.xs,
   },
   description: {
-    fontSize: 14,
+    fontSize: 18,
     color: Colors.textMuted,
     lineHeight: 20,
     marginBottom: Spacing.sm,
@@ -112,11 +167,11 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   timeLabel: {
-    fontSize: 13,
-    color: Colors.textMuted,
+    fontSize: 16,
+    color: Colors.text,
   },
   timeValue: {
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: '600',
     color: Colors.primary,
   },
@@ -127,7 +182,7 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.sm,
     alignItems: 'center',
@@ -138,16 +193,38 @@ const styles = StyleSheet.create({
   },
   cookButtonText: {
     color: Colors.white,
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
   },
   removeButton: {
-    backgroundColor: Colors.surfaceLight,
+    backgroundColor: Colors.accent,
   },
   removeButtonText: {
-    color: Colors.textMuted,
+    color: Colors.white,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  ingredientsList: {
+    marginVertical: Spacing.md,
+  },
+  ingredientItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.sm,
+  },
+  ingredientBullet: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
+    marginRight: Spacing.sm,
+    marginTop: 8,
+  },
+  ingredientText: {
+    flex: 1,
+    fontSize: 18,
+    color: Colors.text,
+    lineHeight: 24,
   },
 });
 
