@@ -9,9 +9,10 @@ import { VoiceChatModal } from './VoiceChatModal';
 interface SavedRecipeCardProps {
   recipe: Recipe;
   onRemove?: () => void;
+  onClose?: () => void;
 }
 
-export function SavedRecipeCard({ recipe, onRemove }: SavedRecipeCardProps) {
+export function SavedRecipeCard({ recipe, onRemove, onClose }: SavedRecipeCardProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCookModalVisible, setIsCookModalVisible] = useState(false);
@@ -63,9 +64,16 @@ export function SavedRecipeCard({ recipe, onRemove }: SavedRecipeCardProps) {
     <>
       <View style={styles.card}>
         {/* Success message */}
-        <Text style={styles.successMessage}>
-          The recipe has been saved successfully!
-        </Text>
+        <View style={styles.successMessageContainer}>
+          <Text style={styles.successMessage}>
+            The recipe has been saved successfully!
+          </Text>
+          {onClose && (
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Recipe Info */}
         <View style={styles.content}>
@@ -139,11 +147,17 @@ const styles = StyleSheet.create({
     marginVertical: Spacing.sm,
    
   },
+  successMessageContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
   successMessage: {
     fontSize: 16,
     color: Colors.textMuted,
-    marginBottom: Spacing.sm,
     fontStyle: 'italic',
+    flex: 1,
   },
   content: {
     marginBottom: Spacing.md,
@@ -153,6 +167,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.text,
     marginBottom: Spacing.xs,
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: Spacing.sm,
+  },
+  closeButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.text,
   },
   description: {
     fontSize: 18,

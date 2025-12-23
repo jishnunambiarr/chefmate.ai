@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Modal,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/shared/context/AuthContext';
 import { Colors, Spacing, BorderRadius } from '@/shared/constants/theme';
 import { SavedRecipeCard } from './SavedRecipeCard';
@@ -100,28 +99,21 @@ export function CreateRecipeButton() {
       {/* Saved Recipe Modal */}
       <Modal
         visible={isRecipeModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
+        animationType="fade"
+        transparent={true}
         onRequestClose={handleCloseRecipeModal}
       >
-        <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
-          <View style={styles.recipeModalContainer}>
-            <View style={styles.recipeModalHeader}>
-              <TouchableOpacity onPress={handleCloseRecipeModal} style={styles.recipeCloseButton}>
-                <Text style={styles.recipeCloseButtonText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.recipeModalContent}>
-              {savedRecipe && (
-                <SavedRecipeCard
-                  recipe={savedRecipe}
-                  onRemove={handleRemoveRecipe}
-                />
-              )}
-            </View>
+        <View style={styles.recipeModalOverlay}>
+          <View style={styles.recipeModalContent}>
+            {savedRecipe && (
+              <SavedRecipeCard
+                recipe={savedRecipe}
+                onRemove={handleRemoveRecipe}
+                onClose={handleCloseRecipeModal}
+              />
+            )}
           </View>
-        </SafeAreaView>
+        </View>
       </Modal>
     </>
   );
@@ -149,31 +141,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   // Recipe Modal Styles
-  recipeModalContainer: {
+  recipeModalOverlay: {
     flex: 1,
-    backgroundColor: Colors.background,
-  },
-  recipeModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-  },
-  recipeCloseButton: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.secondary,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  recipeCloseButtonText: {
-    fontSize: 20,
-    color: Colors.textMuted,
+    padding: Spacing.lg,
   },
   recipeModalContent: {
-    padding: Spacing.lg,
-    paddingTop: Spacing.md,
+    width: '100%',
+    maxWidth: 600,
   },
 });
