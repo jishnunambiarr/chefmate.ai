@@ -152,23 +152,6 @@ export function CreateRecipeButton() {
       } else if (prop.status === 'disconnected') {
         setConnectionStatus('disconnected');
       }
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/49dee237-f0b9-41f8-a1a6-0eceb8c9a5a9', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: 'debug-session',
-          runId: 'initial',
-          hypothesisId: 'H3',
-          location: 'CreateRecipeButton.tsx:onStatusChange',
-          message: 'Conversation status change',
-          data: {
-            status: prop.status,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
     },
     onModeChange: (mode) => {
       console.log('Conversation mode changed:', mode);

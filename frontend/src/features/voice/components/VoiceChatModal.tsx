@@ -22,6 +22,7 @@ import { useVoiceSession } from '../hooks/useVoiceSession';
 import { useAuth } from '@/shared/context/AuthContext';
 import { Colors, Spacing, BorderRadius } from '@/shared/constants/theme';
 import { Recipe } from '@/shared/types/recipe';
+import { getUserPreferences } from '@/shared/services/preferencesService';
 
 interface Message {
   id: string;
@@ -252,12 +253,14 @@ export function VoiceChatModal({
 
     try {
       console.log(`Starting conversation session with token (${agentType})...`);
-      
+      const userPreferences = await getUserPreferences(user?.uid || '');
       // Prepare dynamic variables
       const dynamicVariables: Record<string, any> = {
         user_id: user?.uid || '',
-        diet: "None",
-        temperatur: "Celcius"
+        name: userPreferences?.name || '',
+        diet: userPreferences?.diet.join(',') || 'None',
+        temperatur: userPreferences?.temperatureUnit || 'Celcius',
+        allergies: userPreferences?.allergies || 'None',
       };
 
       // Add recipe data if this is the cook agent
