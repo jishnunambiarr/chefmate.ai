@@ -137,8 +137,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginVertical: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.surfaceLight,
+   
   },
   successMessage: {
     fontSize: 16,

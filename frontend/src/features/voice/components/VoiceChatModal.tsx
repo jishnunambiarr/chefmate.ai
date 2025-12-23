@@ -254,10 +254,11 @@ export function VoiceChatModal({
     try {
       console.log(`Starting conversation session with token (${agentType})...`);
       const userPreferences = await getUserPreferences(user?.uid || '');
+      const name = userPreferences?.name || '';
+      console.log('Allergies:', userPreferences?.allergies);
       // Prepare dynamic variables
       const dynamicVariables: Record<string, any> = {
         user_id: user?.uid || '',
-        name: userPreferences?.name || '',
         diet: userPreferences?.diet.join(',') || 'None',
         temperatur: userPreferences?.temperatureUnit || 'Celcius',
         allergies: userPreferences?.allergies || 'None',
@@ -515,21 +516,21 @@ const styles = StyleSheet.create({
   },
   userMessage: {
     alignSelf: 'flex-end',
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.secondary,
   },
   agentMessage: {
     alignSelf: 'flex-start',
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.primary,
   },
   messageText: {
     fontSize: 16,
     lineHeight: 22,
   },
   userMessageText: {
-    color: Colors.white,
+    color: Colors.text,
   },
   agentMessageText: {
-    color: Colors.text,
+    color: Colors.white,
   },
   endButton: {
     backgroundColor: Colors.accent,
