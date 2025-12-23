@@ -86,8 +86,15 @@ export function VoiceChatModal({
         }
         
         console.log('Extracted message text:', messageText.substring(0, 200));
-        
-        const sender: 'user' | 'agent' = (message as any)?.sender === 'user' ? 'user' : 'agent';
+
+        // Try to infer sender more reliably. Some payloads return "user" | "agent",
+        // others use "role"/"participant" fields. Default to agent if unknown.
+        const rawSender = (message as any)?.sender || (message as any)?.role || (message as any)?.participant;
+        const senderStr =
+          typeof rawSender === 'string'
+            ? rawSender.toLowerCase().trim()
+            : '';
+        const sender: 'user' | 'agent' = senderStr.includes('user') ? 'user' : 'agent';
         
         const newMessage: Message = {
           id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
@@ -362,11 +369,6 @@ export function VoiceChatModal({
               </View>
             ) : (
               <View style={styles.conversationContainer}>
-                <Animated.View style={[styles.voiceIconContainer, animatedStyle]}>
-                  <Text style={styles.voiceIcon}>
-                    {conversation.isSpeaking ? '🎙️' : '🎤'}
-                  </Text>
-                </Animated.View>
 
                 <View style={styles.messagesContainer}>
                   <FlatList
@@ -420,21 +422,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.md,
+    paddingTop: Spacing.md,
+    // paddingBottom: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.surface,
+    borderBottomColor: Colors.background,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.white,
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.text,
   },
   closeButton: {
     width: 36,
     height: 36,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.secondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -496,7 +498,7 @@ const styles = StyleSheet.create({
   messagesContainer: {
     flex: 1,
     width: '100%',
-    paddingHorizontal: Spacing.md,
+    // paddingHorizontal: Spacing.md,
   },
   messagesContent: {
     paddingVertical: Spacing.md,
@@ -527,17 +529,17 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   endButton: {
-    backgroundColor: Colors.error,
+    backgroundColor: Colors.accent,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
-    marginHorizontal: Spacing.md,
-    marginBottom: Spacing.md,
+    // marginHorizontal: Spacing.md,
+    // marginBottom: Spacing.sm,
   },
   endButtonText: {
     color: Colors.white,
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
   },
 });

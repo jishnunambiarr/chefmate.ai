@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: Colors.surfaceLight,
+    borderColor: Colors.surface,
   },
   button: {
     backgroundColor: Colors.primary,

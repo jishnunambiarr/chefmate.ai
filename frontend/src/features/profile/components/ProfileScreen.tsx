@@ -62,9 +62,6 @@ export function ProfileScreen() {
       >
         <SafeAreaView style={{ flex: 1 }}>
           <View style={styles.content}>
-            <View style={styles.avatarContainer}>
-              <Text style={styles.avatarEmoji}>👤</Text>
-            </View>
 
             <Text style={styles.title}>Profile</Text>
             

@@ -118,6 +118,8 @@ export function RecipeDetailScreen() {
     day: 'numeric',
   });
 
+  const formatInstruction = (text: string) => text.replace(/^\s*\d+[.)-]?\s*/, '');
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header with back button */}
@@ -202,7 +204,9 @@ export function RecipeDetailScreen() {
                 <View style={styles.stepNumber}>
                   <Text style={styles.stepNumberText}>{index + 1}</Text>
                 </View>
-                <Text style={styles.instructionText}>{instruction}</Text>
+                <View style= {styles.instructionTextContainer}>
+                  <Text style={styles.instructionText}>{formatInstruction(instruction)}</Text>
+                </View>
               </View>
             ))}
           </View>
@@ -342,7 +346,7 @@ const styles = StyleSheet.create({
   infoCard: {
     flex: 1,
     minWidth: 80,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.surfaceOrange,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     alignItems: 'center',
@@ -417,7 +421,6 @@ const styles = StyleSheet.create({
   },
   instructionItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
     backgroundColor: Colors.secondary,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
@@ -437,10 +440,14 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   instructionText: {
-    flex: 1,
     fontSize: 16,
     color: Colors.text,
     lineHeight: 24,
+  },
+  instructionTextContainer: {
+    flex: 1,
+    display: 'flex',
+    justifyContent: 'center',
   },
   buttonSpacer: {
     height: 100,
@@ -455,7 +462,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     backgroundColor: Colors.background,
     borderTopWidth: 1,
-    borderTopColor: Colors.surfaceLight,
+    borderTopColor: Colors.surface,
   },
   actionButton: {
     flex: 1,
