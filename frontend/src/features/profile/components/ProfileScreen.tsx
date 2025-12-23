@@ -26,6 +26,7 @@ export function ProfileScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoadingPreferences, setIsLoadingPreferences] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
 
   const [name, setName] = useState('');
   const [diet, setDiet] = useState<string[]>([]);
@@ -63,9 +64,14 @@ export function ProfileScreen() {
   }, [user]);
 
   const toggleDiet = (item: string) => {
+    if (!isEditing) return; // Prevent toggling when not in edit mode
     setDiet((prev) =>
       prev.includes(item) ? prev.filter((d) => d !== item) : [...prev, item]
     );
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
   };
 
   const handleSavePreferences = async () => {
@@ -85,6 +91,7 @@ export function ProfileScreen() {
       };
 
       await saveUserPreferences(payload);
+      setIsEditing(false); // Exit edit mode after successful save
       Alert.alert('Success', 'Your preferences have been saved.');
     } catch (error) {
       Alert.alert('Error', 'Failed to save preferences. Please try again.');
@@ -126,26 +133,44 @@ export function ProfileScreen() {
         <SafeAreaView style={{ flex: 1 }}  edges={['top']}>
           <ScrollView contentContainerStyle={styles.content}>
             <View style={styles.headerRow}>
-              
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your name"
-                  placeholderTextColor={Colors.textMuted}
-                  value={name}
-                  onChangeText={setName}
-                />
-             
-              <TouchableOpacity
-                style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
-                onPress={handleSavePreferences}
-                disabled={isSaving || isLoadingPreferences}
-              >
-                {isSaving ? (
-                  <ActivityIndicator color={Colors.white} />
+              <View style={{ flex: 1 }}>
+                {isEditing ? (
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your name"
+                    placeholderTextColor={Colors.textMuted}
+                    value={name}
+                    onChangeText={setName}
+                    editable={isEditing}
+                  />
                 ) : (
-                  <Text style={styles.saveButtonText}>Save</Text>
+                  <Text style={styles.nameDisplay}>
+                    {name || user?.displayName || user?.email?.split('@')[0] || 'Unnamed'}
+                  </Text>
                 )}
-              </TouchableOpacity>
+              </View>
+             
+              {isEditing ? (
+                <TouchableOpacity
+                  style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+                  onPress={handleSavePreferences}
+                  disabled={isSaving || isLoadingPreferences}
+                >
+                  {isSaving ? (
+                    <ActivityIndicator color={Colors.white} />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Save</Text>
+                  )}
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={handleEdit}
+                  disabled={isLoadingPreferences}
+                >
+                  <Text style={styles.editButtonText}>✏️</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             <View style={styles.infoCard}>
@@ -156,8 +181,13 @@ export function ProfileScreen() {
                   return (
                     <TouchableOpacity
                       key={option}
-                      style={[styles.chip, selected && styles.chipSelected]}
+                      style={[
+                        styles.chip,
+                        selected && styles.chipSelected,
+                        !isEditing && styles.chipDisabled,
+                      ]}
                       onPress={() => toggleDiet(option)}
+                      disabled={!isEditing}
                     >
                       <View style={[styles.checkbox, selected && styles.checkboxChecked]}>
                         {selected && <Text style={styles.checkboxTick}>✓</Text>}
@@ -179,6 +209,7 @@ export function ProfileScreen() {
                 placeholderTextColor={Colors.textMuted}
                 value={allergies}
                 onChangeText={setAllergies}
+                editable={isEditing}
               />
             </View>
 
@@ -192,8 +223,10 @@ export function ProfileScreen() {
                       style={[
                         styles.unitOption,
                         temperatureUnit === unit && styles.unitOptionSelected,
+                        !isEditing && styles.unitOptionDisabled,
                       ]}
-                      onPress={() => setTemperatureUnit(unit)}
+                      onPress={() => isEditing && setTemperatureUnit(unit)}
+                      disabled={!isEditing}
                     >
                       <View
                         style={[
@@ -467,6 +500,30 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontWeight: '700',
+  },
+  nameDisplay: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.text,
+    paddingVertical: Spacing.sm,
+  },
+  editButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    minWidth: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editButtonText: {
+    fontSize: 20,
+  },
+  chipDisabled: {
+    opacity: 0.6,
+  },
+  unitOptionDisabled: {
+    opacity: 0.6,
   },
 });
 
