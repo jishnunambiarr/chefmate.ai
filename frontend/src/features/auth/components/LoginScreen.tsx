@@ -67,9 +67,6 @@ export function LoginScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.content}
           >
-            <View style={styles.logoContainer}>
-              <Text style={styles.logoEmoji}>👨‍🍳</Text>
-            </View>
 
             <Text style={styles.title}>ChefMate.AI</Text>
             <Text style={styles.subtitle}>
@@ -143,8 +140,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xxl * 2,
+    // paddingTop: Spacing.xxl * 2,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   logoContainer: {
     width: 100,
@@ -179,7 +177,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   input: {
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.secondary,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.md,
