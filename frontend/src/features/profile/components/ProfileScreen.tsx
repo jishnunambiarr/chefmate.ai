@@ -8,12 +8,10 @@ import {
   Alert,
   ScrollView,
   TextInput,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
-// #region agent log
-fetch('http://127.0.0.1:7242/ingest/05a29dec-4f79-4359-b311-1b867eb9c6b2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ProfileScreen.tsx:10',message:'LinearGradient import check',data:{imported:!!LinearGradient,type:typeof LinearGradient,isFunction:typeof LinearGradient==='function'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-// #endregion
 import { signOut } from 'firebase/auth';
 import { auth } from '@/shared/config/firebase';
 import { useAuth } from '@/shared/context/AuthContext';
@@ -34,7 +32,7 @@ export function ProfileScreen() {
   const [temperatureUnit, setTemperatureUnit] = useState<UserPreferences['temperatureUnit']>('Celcius');
 
   const dietOptions = useMemo(
-    () => ['Vegetarian', 'Vegan', 'Gluten-free', 'Lactose-free', 'High-protein', 'High-fiber'],
+    () => ['Vegetarian', 'Vegan', 'Gluten-free', 'Lactose-free', 'High-protein', 'High-fiber', 'Low-fat', 'Keto', 'Budget-friendly'],
     []
   );
 
@@ -168,7 +166,10 @@ export function ProfileScreen() {
                   onPress={handleEdit}
                   disabled={isLoadingPreferences}
                 >
-                  <Text style={styles.editButtonText}>✏️</Text>
+                  <Image
+                    source={require('@/assets/images/icon-edit.png')}
+                    style={styles.editButtonIcon}
+                  />
                 </TouchableOpacity>
               )}
             </View>
@@ -189,9 +190,6 @@ export function ProfileScreen() {
                       onPress={() => toggleDiet(option)}
                       disabled={!isEditing}
                     >
-                      <View style={[styles.checkbox, selected && styles.checkboxChecked]}>
-                        {selected && <Text style={styles.checkboxTick}>✓</Text>}
-                      </View>
                       <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
                         {option}
                       </Text>
@@ -204,7 +202,7 @@ export function ProfileScreen() {
             <View style={styles.infoCard}>
               <Text style={styles.sectionTitle}>Allergies</Text>
               <TextInput
-                style={styles.input}
+                style={styles.inputAllergies}
                 placeholder="List any allergies"
                 placeholderTextColor={Colors.textMuted}
                 value={allergies}
@@ -228,12 +226,6 @@ export function ProfileScreen() {
                       onPress={() => isEditing && setTemperatureUnit(unit)}
                       disabled={!isEditing}
                     >
-                      <View
-                        style={[
-                          styles.radio,
-                          temperatureUnit === unit && styles.radioSelected,
-                        ]}
-                      />
                       <Text
                         style={[
                           styles.unitText,
@@ -256,10 +248,6 @@ export function ProfileScreen() {
                 <>
                   <Text style={styles.label}>Email</Text>
                   <Text style={styles.value}>{user?.email || 'Not available'}</Text>
-                  <Text style={styles.label}>Account ID</Text>
-                  <Text style={styles.value} numberOfLines={1}>
-                    {user?.uid || 'Not available'}
-                  </Text>
                   <Text style={styles.label}>Member Since</Text>
                   <Text style={styles.value}>
                     {user?.metadata.creationTime
@@ -305,34 +293,9 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: Spacing.md,
-  },
-  avatarContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface,
-    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.lg,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    borderWidth: 3,
-    borderColor: Colors.primary,
-  },
-  avatarEmoji: {
-    fontSize: 48,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: Colors.text,
-    letterSpacing: 1,
-    marginBottom: Spacing.xl,
+    gap: Spacing.md,
+    
   },
   infoCard: {
     backgroundColor: Colors.secondary,
@@ -368,7 +331,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     width: '100%',
-    marginTop: Spacing.xl,
+    marginTop: Spacing.sm,
     gap: Spacing.sm,
   },
   logoutIcon: {
@@ -380,6 +343,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   input: {
+    backgroundColor: Colors.secondary,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    color: Colors.text,
+    borderWidth: 1,
+    borderColor: Colors.surface,
+    fontSize: 20,
+    marginTop: Spacing.xs,
+  },
+  inputAllergies: {
     backgroundColor: Colors.surface,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
@@ -424,25 +398,6 @@ const styles = StyleSheet.create({
   chipTextSelected: {
     color: Colors.primary,
   },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 2,
-    borderColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.background,
-  },
-  checkboxChecked: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary,
-  },
-  checkboxTick: {
-    color: Colors.white,
-    fontSize: 12,
-    fontWeight: '700',
-  },
   row: {
     flexDirection: 'row',
     gap: Spacing.md,
@@ -451,6 +406,7 @@ const styles = StyleSheet.create({
   unitOption: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
@@ -472,22 +428,10 @@ const styles = StyleSheet.create({
   unitTextSelected: {
     color: Colors.primary,
   },
-  radio: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: Colors.surface,
-    backgroundColor: Colors.background,
-  },
-  radioSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary,
-  },
   saveButton: {
     backgroundColor: Colors.primary,
     paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.md,
     minWidth: 100,
     alignItems: 'center',
@@ -506,24 +450,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.text,
     paddingVertical: Spacing.sm,
+    paddingLeft: Spacing.lg,
   },
   editButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.md,
     minWidth: 50,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  editButtonText: {
-    fontSize: 20,
+  editButtonIcon: {
+    width: 35,
+    height: 35,
   },
   chipDisabled: {
-    opacity: 0.6,
+    opacity: 0.8,
   },
   unitOptionDisabled: {
-    opacity: 0.6,
+    opacity: 0.8,
   },
 });
 

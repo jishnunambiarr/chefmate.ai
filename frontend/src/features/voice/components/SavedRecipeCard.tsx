@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginVertical: Spacing.sm,
-   
+    
   },
   successMessageContainer: {
     flexDirection: 'row',

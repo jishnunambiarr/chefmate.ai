@@ -23,6 +23,7 @@ import { useAuth } from '@/shared/context/AuthContext';
 import { Colors, Spacing, BorderRadius } from '@/shared/constants/theme';
 import { Recipe } from '@/shared/types/recipe';
 import { getUserPreferences } from '@/shared/services/preferencesService';
+import { getUserRecipes } from '@/shared/services/recipeService';
 
 interface Message {
   id: string;
@@ -263,6 +264,19 @@ export function VoiceChatModal({
         temperatur: userPreferences?.temperatureUnit || 'Celcius',
         allergies: userPreferences?.allergies || 'None',
       };
+
+      // Add recipe history if this is the discover agent
+      if (agentType === 'discover' && user?.uid) {
+        try {
+          const userRecipes = await getUserRecipes(user.uid);
+          const recipeNames = userRecipes.map((r) => r.title);
+          dynamicVariables.recipeHistory = JSON.stringify(recipeNames);
+          console.log('Recipe history:', recipeNames);
+        } catch (error) {
+          console.error('Error fetching recipe history:', error);
+          dynamicVariables.recipeHistory = JSON.stringify([]);
+        }
+      }
 
       // Add recipe data if this is the cook agent
       if (agentType === 'cook' && recipe) {

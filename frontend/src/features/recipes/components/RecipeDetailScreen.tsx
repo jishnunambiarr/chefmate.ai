@@ -7,13 +7,14 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaInsetsContext, SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Colors, Spacing, BorderRadius } from '@/shared/constants/theme';
 import { Recipe } from '@/shared/types/recipe';
 import { deleteRecipe } from '@/shared/services/recipeService';
 import { VoiceChatModal } from '@/features/voice/components/VoiceChatModal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export function RecipeDetailScreen() {
   const router = useRouter();
@@ -22,7 +23,8 @@ export function RecipeDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCookModalVisible, setIsCookModalVisible] = useState(false);
-
+  const insets = useSafeAreaInsets();
+  
   useEffect(() => {
     try {
       const recipeParam = params.recipe as string | undefined;
@@ -217,7 +219,7 @@ export function RecipeDetailScreen() {
       </ScrollView>
 
       {/* Action Buttons - Fixed at bottom */}
-      <View style={styles.actionsContainer}>
+      <View style={[styles.actionsContainer, { paddingBottom: insets.bottom + Spacing.sm}]}>
         <TouchableOpacity
           style={[styles.actionButton, styles.unsaveButton]}
           onPress={handleUnsave}
@@ -307,7 +309,8 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: Colors.text,
-    textAlign: 'center',
+    textAlign: 'left',
+    maxWidth: '90%',
   },
   
   scrollView: {
@@ -348,7 +351,7 @@ const styles = StyleSheet.create({
     minWidth: 80,
     backgroundColor: Colors.surfaceOrange,
     borderRadius: BorderRadius.md,
-    padding: Spacing.md,
+    padding: Spacing.sm,
     alignItems: 'center',
   },
   infoCardIcon: {
@@ -386,7 +389,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionCount: {
-    fontSize: 12,
+    fontSize: 16,
     color: Colors.textMuted,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
@@ -412,7 +415,7 @@ const styles = StyleSheet.create({
   },
   ingredientText: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.text,
     lineHeight: 24,
   },
@@ -440,7 +443,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   instructionText: {
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.text,
     lineHeight: 24,
   },
@@ -459,7 +462,8 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     gap: Spacing.md,
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
     backgroundColor: Colors.background,
     borderTopWidth: 1,
     borderTopColor: Colors.surface,

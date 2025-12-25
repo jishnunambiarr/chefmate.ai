@@ -18,12 +18,6 @@ export function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* #region agent log */}
-      {(() => {
-        fetch('http://127.0.0.1:7242/ingest/05a29dec-4f79-4359-b311-1b867eb9c6b2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HomeScreen.tsx:18',message:'About to render LinearGradient',data:{LinearGradientType:typeof LinearGradient,isFunction:typeof LinearGradient==='function'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        return null;
-      })()}
-      {/* #endregion */}
       <LinearGradient
         colors={[Colors.background, Colors.surface]}
         style={styles.gradient}

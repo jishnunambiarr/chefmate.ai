@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Tabs, useRouter } from 'expo-router';
-import { Text, StyleSheet } from 'react-native';
+import { Image, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/shared/context/AuthContext';
 import { Colors } from '@/shared/constants/theme';
@@ -37,7 +37,10 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ focused }) => (
-            <Text style={[styles.icon, focused && styles.iconActive]}>🏠</Text>
+            <Image
+              source={require('@/assets/images/icon-recipe.png')}
+              style={[styles.icon, focused && styles.iconActive]}
+            />
           ),
         }}
       />
@@ -46,7 +49,10 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ focused }) => (
-            <Text style={[styles.icon, focused && styles.iconActive]}>👤</Text>
+            <Image
+              source={require('@/assets/images/icon-chef.png')}
+              style={[styles.icon, focused && styles.iconActive]}
+            />
           ),
         }}
       />
@@ -68,7 +74,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   icon: {
-    fontSize: 24,
+    width: 24,
+    height: 24,
     opacity: 0.7,
   },
   iconActive: {

@@ -15,9 +15,6 @@ try {
 // #endregion
 
 export default function RootLayout() {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/05a29dec-4f79-4359-b311-1b867eb9c6b2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'app/_layout.tsx:22',message:'RootLayout rendering',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
   return (
     <SafeAreaProvider>
       <AuthProvider>
@@ -26,7 +23,7 @@ export default function RootLayout() {
             <Stack.Screen name="index" />
             <Stack.Screen name="(tabs)" />
           </Stack>
-          <StatusBar style="light" />
+          <StatusBar style="dark" />
         </ElevenLabsProvider>
       </AuthProvider>
     </SafeAreaProvider>
