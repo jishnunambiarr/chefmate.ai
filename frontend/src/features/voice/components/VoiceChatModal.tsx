@@ -263,13 +263,10 @@ export function VoiceChatModal({
       console.log(`Starting conversation session with token (${agentType})...`);
       const userPreferences = await getUserPreferences(user?.uid || '');
       const name = userPreferences?.name || '';
-      console.log('Allergies:', userPreferences?.allergies);
+      
       // Prepare dynamic variables
       const dynamicVariables: Record<string, any> = {
-        user_id: user?.uid || '',
-        diet: userPreferences?.diet.join(',') || 'None',
-        temperatur: userPreferences?.temperatureUnit || 'Celcius',
-        allergies: userPreferences?.allergies || 'None',
+        name: name,
       };
 
       // Add recipe history if this is the discover agent
@@ -278,6 +275,10 @@ export function VoiceChatModal({
           const userRecipes = await getUserRecipes(user.uid);
           const recipeNames = userRecipes.map((r) => r.title);
           dynamicVariables.recipeHistory = JSON.stringify(recipeNames);
+          dynamicVariables.user_id = user?.uid || '';
+          dynamicVariables.diet = userPreferences?.diet.join(',') || 'None';
+          dynamicVariables.temperatur = userPreferences?.temperatureUnit || 'Celcius';
+          dynamicVariables.allergies = userPreferences?.allergies || 'None';
           console.log('Recipe history:', recipeNames);
         } catch (error) {
           console.error('Error fetching recipe history:', error);

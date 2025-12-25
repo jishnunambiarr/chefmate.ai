@@ -10,6 +10,7 @@ import {
 import { SafeAreaInsetsContext, SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
+import * as Clipboard from 'expo-clipboard';
 import { Colors, Spacing, BorderRadius } from '@/shared/constants/theme';
 import { Recipe } from '@/shared/types/recipe';
 import { deleteRecipe } from '@/shared/services/recipeService';
@@ -87,6 +88,25 @@ export function RecipeDetailScreen() {
 
   const handleGoBack = () => {
     router.back();
+  };
+
+  const handleCopyIngredients = () => {
+    if (!recipe) return;
+    
+    // Format ingredients list for clipboard
+    const ingredientsText = recipe.ingredients.map((ingredient) => {
+      let line = `• ${ingredient.name}`;
+      if (ingredient.amount || ingredient.unit) {
+        const amount = ingredient.amount ? String(ingredient.amount) : '';
+        const unit = ingredient.unit || '';
+        const quantity = [amount, unit].filter(Boolean).join(' ');
+        line += ` - ${quantity}`;
+      }
+      return line;
+    }).join('\n');
+    
+    Clipboard.setStringAsync(ingredientsText);
+    Alert.alert('Copied!', 'Ingredient list has been copied to clipboard');
   };
 
   if (error) {
@@ -198,6 +218,12 @@ export function RecipeDetailScreen() {
                 )}
               </View>
             ))}
+            <TouchableOpacity 
+              style={styles.copyButton}
+              onPress={handleCopyIngredients}
+            >
+              <Text style={styles.copyButtonText}>Copy the ingredient list</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -429,9 +455,21 @@ const styles = StyleSheet.create({
   },
   ingredientAmount: {
     fontSize: 18,
-    color: Colors.textMuted,
+    color: Colors.text,
     lineHeight: 24,
     marginLeft: Spacing.sm,
+  },
+  copyButton: {
+    marginTop: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+  },
+  copyButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.primary,
+    textDecorationLine: 'underline',
   },
   instructionsList: {
     gap: Spacing.md,
