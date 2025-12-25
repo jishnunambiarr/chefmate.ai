@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, FlatList, ActivityIndicator, Pressable } from 'react-native';
+import { StyleSheet, View, Text, FlatList, ActivityIndicator, Pressable, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LinearGradient from 'react-native-linear-gradient';
@@ -9,12 +9,69 @@ import { Colors, Spacing, BorderRadius } from '@/shared/constants/theme';
 import { useRecipes } from '@/shared/hooks/useRecipes';
 import { Recipe } from '@/shared/types/recipe';
 import { CreateRecipeButton } from '@/features/voice/components/CreateRecipeButton';
+import { useState, useMemo } from 'react';
 
 export function HomeScreen() {
   // #region agent log
   fetch('http://127.0.0.1:7242/ingest/05a29dec-4f79-4359-b311-1b867eb9c6b2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HomeScreen.tsx:15',message:'HomeScreen rendering',data:{hasLinearGradient:!!LinearGradient},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
   // #endregion
   const { recipes, isLoading, error } = useRecipes();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter and sort recipes based on search query
+  const filteredAndSortedRecipes = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return recipes;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    const queryWords = query.split(/\s+/).filter(word => word.length > 0);
+
+    // Score each recipe based on how well it matches the search
+    const scoredRecipes = recipes.map(recipe => {
+      let score = 0;
+      const titleLower = recipe.title.toLowerCase();
+      const descriptionLower = recipe.description?.toLowerCase() || '';
+      const ingredientsLower = recipe.ingredients.map(ing => ing.name.toLowerCase()).join(' ');
+
+      // Check each query word
+      queryWords.forEach(word => {
+        // Title matches get highest score (10 points per word)
+        if (titleLower.includes(word)) {
+          score += 10;
+          // Exact title match gets bonus
+          if (titleLower === query) {
+            score += 20;
+          }
+        }
+        
+        // Description matches get medium score (5 points per word)
+        if (descriptionLower.includes(word)) {
+          score += 5;
+        }
+        
+        // Ingredient matches get lower score (3 points per word)
+        if (ingredientsLower.includes(word)) {
+          score += 3;
+        }
+      });
+
+      return { recipe, score };
+    });
+
+    // Separate recipes into matches and non-matches
+    const matches = scoredRecipes.filter(item => item.score > 0);
+    const nonMatches = scoredRecipes.filter(item => item.score === 0);
+
+    // Sort matches by score (highest first)
+    matches.sort((a, b) => b.score - a.score);
+
+    // Combine: best matches first, then all other recipes
+    return [
+      ...matches.map(item => item.recipe),
+      ...nonMatches.map(item => item.recipe)
+    ];
+  }, [recipes, searchQuery]);
 
   return (
     <View style={styles.container}>
@@ -33,7 +90,20 @@ export function HomeScreen() {
           </View>
 
           <View style={styles.content}>
-            <Text style={styles.sectionTitle}>Your Recipes</Text>
+            <View style={styles.headerRow}>
+              <Text style={styles.sectionTitle}>Your Recipes</Text>
+              <View style={styles.searchContainer}>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search recipes..."
+                  placeholderTextColor={Colors.textMuted}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+            </View>
             
             {isLoading ? (
               <View style={styles.centerContainer}>
@@ -51,11 +121,11 @@ export function HomeScreen() {
                 })()}
               
               </View>
-            ) : recipes.length === 0 ? (
+            ) : filteredAndSortedRecipes.length === 0 ? (
               <EmptyState />
             ) : (
               <FlatList
-                data={recipes}
+                data={filteredAndSortedRecipes}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => <RecipeCard recipe={item} />}
                 contentContainerStyle={styles.recipeList}
@@ -172,11 +242,29 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: Spacing.lg,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    gap: Spacing.md,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: Colors.text,
-    marginBottom: Spacing.md,
+  },
+  searchContainer: {
+    flex: 1,
+  },
+  searchInput: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    borderWidth: 2,
+    borderColor: Colors.secondary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    color: Colors.text,
+    fontSize: 16,
   },
   centerContainer: {
     flex: 1,

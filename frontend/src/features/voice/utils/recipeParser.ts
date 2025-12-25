@@ -1,4 +1,4 @@
-import { Recipe, NewRecipe } from '@/shared/types/recipe';
+import { Recipe, NewRecipe, Ingredient } from '@/shared/types/recipe';
 
 /**
  * Agent recipe format (as received from ElevenLabs agent)
@@ -70,16 +70,64 @@ export function parseAgentRecipe(message: string): AgentRecipe | null {
 }
 
 /**
+ * Parses a quantity string (e.g., "2 cups", "1/2 tsp") into amount and unit
+ */
+function parseQuantity(quantity: string): { amount?: number; unit?: string } {
+  if (!quantity || !quantity.trim()) {
+    return {};
+  }
+
+  const trimmed = quantity.trim();
+  
+  // Try to match patterns like "2 cups", "1/2 tsp", "3.5 oz", etc.
+  // Match numbers (including fractions and decimals) followed by optional unit
+  const numberPattern = /^([\d./]+)\s*(.*)$/;
+  const match = trimmed.match(numberPattern);
+  
+  if (match) {
+    const numberStr = match[1].trim();
+    const unitStr = match[2].trim();
+    
+    // Parse the number (handle fractions like "1/2")
+    let amount: number | undefined;
+    if (numberStr.includes('/')) {
+      const [numerator, denominator] = numberStr.split('/').map(Number);
+      if (!isNaN(numerator) && !isNaN(denominator) && denominator !== 0) {
+        amount = numerator / denominator;
+      }
+    } else {
+      const parsed = parseFloat(numberStr);
+      if (!isNaN(parsed)) {
+        amount = parsed;
+      }
+    }
+    
+    return {
+      amount,
+      unit: unitStr || undefined,
+    };
+  }
+  
+  // If no number pattern matches, treat the whole string as unit
+  return { unit: trimmed };
+}
+
+/**
  * Transforms agent recipe format to frontend Recipe format
  */
 export function transformAgentRecipeToRecipe(
   agentRecipe: AgentRecipe,
   userId: string
 ): NewRecipe {
-  // Transform ingredients from {name, quantity} to string format
-  const ingredients = agentRecipe.ingredients.map(
-    (ing) => `${ing.quantity || ''} ${ing.name}`.trim()
-  );
+  // Transform ingredients from {name, quantity} to {name, amount?, unit?} format
+  const ingredients: Ingredient[] = agentRecipe.ingredients.map((ing) => {
+    const parsed = parseQuantity(ing.quantity || '');
+    return {
+      name: ing.name,
+      amount: parsed.amount,
+      unit: parsed.unit,
+    };
+  });
   
   return {
     userId,

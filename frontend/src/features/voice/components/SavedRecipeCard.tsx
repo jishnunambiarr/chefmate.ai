@@ -86,14 +86,21 @@ export function SavedRecipeCard({ recipe, onRemove, onClose }: SavedRecipeCardPr
           )}
 
          {recipe.ingredients.length > 0 && (
-            <Text style={styles.ingredientsList}>
+            <View style={styles.ingredientsList}>
               {recipe.ingredients.map((ingredient, index) => (
                 <View key={index} style={styles.ingredientItem}>
-                <View style={styles.ingredientBullet} />
-                <Text style={styles.ingredientText}>{ingredient}</Text>
-              </View>
+                  <View style={styles.ingredientBullet} />
+                  <Text style={styles.ingredientName}>{ingredient.name}</Text>
+                  {(ingredient.amount || ingredient.unit) && (
+                    <Text style={styles.ingredientAmount}>
+                      {ingredient.amount ? ingredient.amount : ''}
+                      {ingredient.amount && ingredient.unit ? ' ' : ''}
+                      {ingredient.unit || ''}
+                    </Text>
+                  )}
+                </View>
               ))}
-            </Text>
+            </View>
           )}
 
           {totalTime > 0 && (
@@ -235,6 +242,7 @@ const styles = StyleSheet.create({
   ingredientItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    justifyContent: 'space-between',
     marginBottom: Spacing.sm,
   },
   ingredientBullet: {
@@ -245,11 +253,17 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
     marginTop: 8,
   },
-  ingredientText: {
+  ingredientName: {
     flex: 1,
     fontSize: 18,
     color: Colors.text,
     lineHeight: 24,
+  },
+  ingredientAmount: {
+    fontSize: 18,
+    color: Colors.textMuted,
+    lineHeight: 24,
+    marginLeft: Spacing.sm,
   },
 });
 

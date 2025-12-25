@@ -188,7 +188,14 @@ export function RecipeDetailScreen() {
             {recipe.ingredients.map((ingredient, index) => (
               <View key={index} style={styles.ingredientItem}>
                 <View style={styles.ingredientBullet} />
-                <Text style={styles.ingredientText}>{ingredient}</Text>
+                <Text style={styles.ingredientName}>{ingredient.name}</Text>
+                {(ingredient.amount || ingredient.unit) && (
+                  <Text style={styles.ingredientAmount}>
+                    {ingredient.amount ? ingredient.amount : ''}
+                    {ingredient.amount && ingredient.unit ? ' ' : ''}
+                    {ingredient.unit || ''}
+                  </Text>
+                )}
               </View>
             ))}
           </View>
@@ -359,13 +366,13 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   infoCardValue: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     color: Colors.text,
     textAlign: 'center',
   },
   infoCardLabel: {
-    fontSize: 10,
+    fontSize: 12,
     color: Colors.textMuted,
     marginTop: 2,
     textAlign: 'center',
@@ -403,6 +410,7 @@ const styles = StyleSheet.create({
   ingredientItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    justifyContent: 'space-between',
     marginBottom: Spacing.sm,
   },
   ingredientBullet: {
@@ -413,11 +421,17 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
     marginTop: 8,
   },
-  ingredientText: {
+  ingredientName: {
     flex: 1,
     fontSize: 18,
     color: Colors.text,
     lineHeight: 24,
+  },
+  ingredientAmount: {
+    fontSize: 18,
+    color: Colors.textMuted,
+    lineHeight: 24,
+    marginLeft: Spacing.sm,
   },
   instructionsList: {
     gap: Spacing.md,

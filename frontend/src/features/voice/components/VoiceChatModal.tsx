@@ -50,6 +50,7 @@ export function VoiceChatModal({
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [isMicMuted, setIsMicMuted] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [conversationError, setConversationError] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   
@@ -147,8 +148,14 @@ export function VoiceChatModal({
     },
     onModeChange: (mode) => {
       console.log('Conversation mode changed:', mode);
+      if (mode.mode === 'listening' && connectionStatus === 'connected' && !conversation.isSpeaking) {
+        setIsListening(true);
+      } else {
+        setIsListening(false);
+      }
     },
   });
+
 
   // Reset state when modal closes
   useEffect(() => {
@@ -283,7 +290,11 @@ export function VoiceChatModal({
         dynamicVariables.recipe = JSON.stringify({
           title: recipe.title,
           description: recipe.description,
-          ingredients: recipe.ingredients,
+          ingredients: recipe.ingredients.map(ing => ({
+            name: ing.name,
+            amount: ing.amount,
+            unit: ing.unit,
+          })),
           instructions: recipe.instructions,
           prepTime: recipe.prepTime,
           cookTime: recipe.cookTime,
@@ -330,6 +341,7 @@ export function VoiceChatModal({
 
   const isConnected = connectionStatus === 'connected';
   const isConnecting = connectionStatus === 'connecting';
+  
 
   return (
     <Modal
@@ -406,6 +418,15 @@ export function VoiceChatModal({
                         </Text>
                       </View>
                     )}
+                    ListFooterComponent={
+                      isListening ? (
+                        <View style={[styles.messageBubble, styles.userMessage, styles.listeningIndicator]}>
+                          <Text style={[styles.messageText, styles.userMessageText, styles.listeningText]}>
+                            Agent is listening...
+                          </Text>
+                        </View>
+                      ) : null
+                    }
                     contentContainerStyle={styles.messagesContent}
                     onContentSizeChange={() => {
                       messagesEndRef.current?.scrollToEnd({ animated: true });
@@ -559,6 +580,12 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 18,
     fontWeight: '600',
+  },
+  listeningIndicator: {
+    opacity: 0.7,
+  },
+  listeningText: {
+    fontStyle: 'italic',
   },
 });
 
