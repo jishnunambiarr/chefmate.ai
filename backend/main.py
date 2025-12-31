@@ -46,6 +46,8 @@ app.add_middleware(
 # Include routers
 app.include_router(elevenlabs_router)
 app.include_router(recipes_router)
+from features.planner.router import router as planner_router
+app.include_router(planner_router)
 
 
 @app.on_event("startup")

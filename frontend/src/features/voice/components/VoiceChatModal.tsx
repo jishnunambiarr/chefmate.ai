@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -25,6 +25,7 @@ import { Colors, Spacing, BorderRadius } from '@/shared/constants/theme';
 import { Recipe } from '@/shared/types/recipe';
 import { getUserPreferences } from '@/shared/services/preferencesService';
 import { getUserRecipes } from '@/shared/services/recipeService';
+import { API_BASE_URL } from '@/shared/config/api';
 
 interface Message {
   id: string;
@@ -36,7 +37,7 @@ interface Message {
 interface VoiceChatModalProps {
   visible: boolean;
   onClose: () => void;
-  agentType: 'discover' | 'cook';
+  agentType: 'discover' | 'cook' | 'planner';
   recipe?: Recipe | null;
   title?: string;
 }
@@ -47,7 +48,7 @@ export function VoiceChatModal({
   agentType,
   recipe,
   title = 'Voice Recipe Creation'
-}: VoiceChatModalProps) {
+}: VoiceChatModalProps): React.ReactElement {
   useKeepAwake(); // Keep screen on while modal is open
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
@@ -65,6 +66,69 @@ export function VoiceChatModal({
       skip_users_turn: async () => {
         console.log('Agent requested to skip user turn');
         return "Turn skipped";
+      },
+      create_recipe: async (recipeData: any) => {
+        console.log('Agent requested to create recipe:', recipeData);
+        try {
+          const token = await user?.getIdToken();
+          let body = recipeData;
+          if (typeof recipeData === 'string') {
+            try { body = JSON.parse(recipeData); } catch (e) { }
+          }
+
+          const response = await fetch(`${API_BASE_URL}/recipes/agent`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            return JSON.stringify({ id: data.id, title: data.title });
+          } else {
+            return "Error creating recipe.";
+          }
+        } catch (e) {
+          console.error(e);
+          return "Error creating recipe.";
+        }
+      },
+      save_weekly_plan: async (planJson: any) => {
+        console.log('Agent output plan JSON:', planJson);
+        try {
+          const token = await user?.getIdToken();
+          let body = planJson;
+          // Handle case where agent passes stringified JSON
+          if (typeof planJson === 'string') {
+            try {
+              body = JSON.parse(planJson);
+            } catch (e) {
+              console.error("Failed to parse agent JSON string", e);
+              return "Error: Invalid JSON format";
+            }
+          }
+
+          const response = await fetch(`${API_BASE_URL}/planner`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+          });
+
+          if (response.ok) {
+            return "Successfully saved the weekly plan!";
+          } else {
+            return "Error saving plan to server.";
+          }
+        } catch (e) {
+          console.error(e);
+          return "Error saving plan.";
+        }
       }
     },
     onConnect: () => {
@@ -266,17 +330,22 @@ export function VoiceChatModal({
         name: name,
       };
 
-      // Add recipe history if this is the discover agent
-      if (agentType === 'discover' && user?.uid) {
+      // Add recipe history/saved recipes if this is the discover or planner agent
+      if ((agentType === 'discover' || agentType === 'planner') && user?.uid) {
         try {
           const userRecipes = await getUserRecipes(user.uid);
           const recipeNames = userRecipes.map((r) => r.title);
+          // Pass full details to planner so it can suggest them specifically
+          const recipeDetails = userRecipes.map(r => ({ id: r.id, title: r.title, tags: r.description })); // simplified context
+
           dynamicVariables.recipeHistory = JSON.stringify(recipeNames);
+          dynamicVariables.saved_recipes = JSON.stringify(recipeDetails);
+
           dynamicVariables.user_id = user?.uid || '';
           dynamicVariables.diet = userPreferences?.diet.join(',') || 'None';
           dynamicVariables.temperatur = userPreferences?.temperatureUnit || 'Celcius';
           dynamicVariables.allergies = userPreferences?.allergies || 'None';
-          console.log('Recipe history:', recipeNames);
+          console.log('Recipe history loaded for agent');
         } catch (error) {
           console.error('Error fetching recipe history:', error);
           dynamicVariables.recipeHistory = JSON.stringify([]);

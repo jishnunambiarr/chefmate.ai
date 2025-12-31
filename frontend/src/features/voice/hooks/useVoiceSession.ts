@@ -8,7 +8,7 @@ interface VoiceSessionState {
   error: string | null;
 }
 
-export type AgentType = 'discover' | 'cook';
+export type AgentType = 'discover' | 'cook' | 'planner';
 
 export function useVoiceSession() {
   const [state, setState] = useState<VoiceSessionState>({
@@ -27,12 +27,15 @@ export function useVoiceSession() {
       }
 
       const idToken = await user.getIdToken();
-      
+
       // Use different endpoint based on agent type
-      const endpoint = agentType === 'cook' ? 'conversation-token-cook' : 'conversation-token';
+      let endpoint = 'conversation-token';
+      if (agentType === 'cook') endpoint = 'conversation-token-cook';
+      if (agentType === 'planner') endpoint = 'conversation-token-planner';
+
       const url = `${API_BASE_URL}/elevenlabs/${endpoint}`;
       console.log(`Fetching conversation token from: ${url} (agent: ${agentType})`);
-      
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -40,7 +43,7 @@ export function useVoiceSession() {
           'Content-Type': 'application/json',
         },
       });
-      
+
       console.log('Response status:', response.status, response.statusText);
 
       if (!response.ok) {
@@ -49,11 +52,11 @@ export function useVoiceSession() {
       }
 
       const data = await response.json();
-      
+
       if (!data.token) {
         throw new Error('Invalid response: missing conversation token');
       }
-      
+
       setState(prev => ({ ...prev, token: data.token, isLoading: false }));
       return data.token;
     } catch (error: any) {

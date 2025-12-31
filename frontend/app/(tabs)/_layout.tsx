@@ -45,6 +45,18 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="planner"
+        options={{
+          title: 'Meal Plan',
+          tabBarIcon: ({ focused }) => (
+            <Image
+              source={require('@/assets/images/icon-edit.png')}
+              style={[styles.icon, focused && styles.iconActive]}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
@@ -63,7 +75,7 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: Colors.surface,
-    borderTopColor: Colors.surfaceLight,
+    borderTopColor: Colors.secondary,
     borderTopWidth: 1,
     paddingTop: 8,
     paddingBottom: 8,
