@@ -2,6 +2,8 @@
 
 ChefMate AI is a voice-first cooking assistant powered by **ElevenLabs Conversational AI** and **Google Cloud**. It helps users discover recipes, plans meals, and guides them through cooking steps with a natural, hands-free voice interface.
 
+### [📺 Watch the Demo Video](https://youtube.com/shorts/wFGzK78Jf48?feature=share)
+
 ## Features
 
 -   **Voice-First Interface**: Interact entirely through speech to find and cook recipes.
@@ -97,4 +99,4 @@ MIT
 
 ## Acknowledgements
 
-Most of the code in this repository was generated with [Cursor](https://cursor.sh).
+Most of the code in this repository was generated with **Google Gemini 3 Pro**, using the **Antigravity** advanced agentic coding system.
