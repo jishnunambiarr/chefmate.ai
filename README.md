@@ -7,7 +7,7 @@ ChefMate AI is a voice-first cooking assistant powered by **ElevenLabs Conversat
 -   **Voice-First Interface**: Interact entirely through speech to find and cook recipes.
 -   **AI Recipe Discovery**: Ask for "Ketogenic Italian dinner" and get personalized suggestions.
 -   **Step-by-Step Cooking**: The agent guides you through every step, waiting for you to finish chopping/cooking.
--   **Weekly Meal Planner**: Plan your week's meals with AI assistance, save them to your profile, and modify them.
+-   **Weekly Meal Planner (Beta)**: Plan your week's meals with AI assistance, save them to your profile, and modify them. *Currently in early beta/rudimentary stage.*
 -   **Secure & Private**: Built with privacy in mind.
 
 ## Architecture
@@ -94,3 +94,7 @@ It demonstrates:
 ## License
 
 MIT
+
+## Acknowledgements
+
+Most of the code in this repository was generated with [Cursor](https://cursor.sh).

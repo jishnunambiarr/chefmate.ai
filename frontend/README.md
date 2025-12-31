@@ -1,50 +1,35 @@
-# Welcome to your Expo app 👋
+# ChefMate AI - Mobile Frontend 📱
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+The mobile application for **ChefMate AI**, built with **React Native** and **Expo**. This app provides the voice-first interface for users to discover recipes, plan meals, and cook hands-free.
 
-## Get started
+## Features
 
-1. Install dependencies
+*   **🎙️ Voice Chat**: Real-time voice interaction with AI Agents (Discover, Cook, Planner).
+*   **🍽️ Meal Planner**: Weekly meal planning interface to view and manage generated plans.
+*   **🍳 Cook Mode**: Step-by-step cooking guidance with voice controls.
 
-   ```bash
-   npm install
-   ```
+## Setup & Running
 
-2. Start the app
+1.  **Install Dependencies**:
+    ```bash
+    npm install
+    ```
 
-   ```bash
-   npx expo start
-   ```
+2.  **Configuration**:
+    *   Open `src/shared/config/api.ts`.
+    *   **CRITICAL**: Update `LOCAL_IP` to your computer's IP address (e.g., `192.168.1.x`).
+    *   *Note: `localhost` will not work on physical Android/iOS devices.*
 
-In the output, you'll find options to open the app in a
+3.  **Start the App**:
+    ```bash
+    npx expo start
+    ```
+    *   Scan the QR code with the **Expo Go** app on your phone.
+    *   Or press `a` to run on Android Emulator.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Troubleshooting
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+*   **Connection Failed?**
+    *   Ensure your phone and computer are on the **same Wi-Fi network**.
+    *   Double-check the `LOCAL_IP` in `api.ts`.
+    *   Ensure the backend is running (`python main.py` in the `backend/` folder).
