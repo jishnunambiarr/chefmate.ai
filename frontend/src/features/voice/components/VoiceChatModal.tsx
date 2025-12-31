@@ -11,11 +11,12 @@ import {
   FlatList,
 } from 'react-native';
 import { useConversation } from '@elevenlabs/react-native';
+import { useKeepAwake } from 'expo-keep-awake';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withRepeat, 
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
   withTiming,
 } from 'react-native-reanimated';
 import { useVoiceSession } from '../hooks/useVoiceSession';
@@ -40,35 +41,36 @@ interface VoiceChatModalProps {
   title?: string;
 }
 
-export function VoiceChatModal({ 
-  visible, 
-  onClose, 
+export function VoiceChatModal({
+  visible,
+  onClose,
   agentType,
   recipe,
   title = 'Voice Recipe Creation'
 }: VoiceChatModalProps) {
+  useKeepAwake(); // Keep screen on while modal is open
   const [permissionGranted, setPermissionGranted] = useState<boolean | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
-  const [isMicMuted, setIsMicMuted] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [conversationError, setConversationError] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  
+
   const { user } = useAuth();
   const { fetchConversationToken, isLoading: isTokenLoading, error: tokenError } = useVoiceSession();
   const messagesEndRef = useRef<FlatList>(null);
   const scale = useSharedValue(1);
-  
+
   const conversation = useConversation({
+    clientTools: {
+      skip_users_turn: async () => {
+        console.log('Agent requested to skip user turn');
+        return "Turn skipped";
+      }
+    },
     onConnect: () => {
-      console.log(`Connected to ElevenLabs conversation (${agentType})`);
+      console.log('Connected to ElevenLabs conversation (' + agentType + ')');
       setConnectionStatus('connected');
       setConversationError(null);
-      setTimeout(() => {
-        conversation.setMicMuted(false);
-        setIsMicMuted(false);
-        console.log('Microphone unmuted after connection');
-      }, 500);
     },
     onDisconnect: async () => {
       console.log(`Disconnected from ElevenLabs conversation (${agentType})`);
@@ -78,7 +80,7 @@ export function VoiceChatModal({
     onMessage: (message: any) => {
       try {
         console.log('Message received:', JSON.stringify(message, null, 2));
-        
+
         let messageText: string;
         if (typeof message === 'string') {
           messageText = message;
@@ -87,7 +89,7 @@ export function VoiceChatModal({
         } else {
           messageText = String(message);
         }
-        
+
         console.log('Extracted message text:', messageText.substring(0, 200));
 
         // Try to infer sender more reliably. Some payloads return "user" | "agent",
@@ -98,16 +100,16 @@ export function VoiceChatModal({
             ? rawSender.toLowerCase().trim()
             : '';
         const sender: 'user' | 'agent' = senderStr.includes('user') ? 'user' : 'agent';
-        
+
         const newMessage: Message = {
           id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
           text: messageText,
           sender,
           timestamp: Date.now(),
         };
-        
+
         setMessages(prev => [...prev, newMessage]);
-        
+
         setTimeout(() => {
           messagesEndRef.current?.scrollToEnd({ animated: true });
         }, 100);
@@ -116,16 +118,16 @@ export function VoiceChatModal({
       }
     },
     onError: (error: any) => {
-      const errorMessage = (typeof error === 'object' && error?.message) 
-        ? String(error.message) 
+      const errorMessage = (typeof error === 'object' && error?.message)
+        ? String(error.message)
         : (typeof error === 'string' ? error : String(error));
-      
-      const isWebSocketClosureError = 
+
+      const isWebSocketClosureError =
         errorMessage.includes('WebSocket') ||
         errorMessage.includes('websocket') ||
         errorMessage.includes('CLOSED') ||
         errorMessage.includes('CLOSING');
-      
+
       if (!isWebSocketClosureError) {
         console.error('Conversation error:', error);
         setConversationError(errorMessage || 'An error occurred during the conversation');
@@ -137,18 +139,13 @@ export function VoiceChatModal({
       console.log('Conversation status changed:', prop.status);
       if (prop.status === 'connected') {
         setConnectionStatus('connected');
-        setTimeout(() => {
-          conversation.setMicMuted(false);
-          setIsMicMuted(false);
-          console.log('Microphone unmuted on status change');
-        }, 500);
       } else if (prop.status === 'disconnected') {
         setConnectionStatus('disconnected');
       }
     },
     onModeChange: (mode) => {
       console.log('Conversation mode changed:', mode);
-      if (mode.mode === 'listening' && connectionStatus === 'connected' && !conversation.isSpeaking) {
+      if (mode.mode === 'listening') {
         setIsListening(true);
       } else {
         setIsListening(false);
@@ -191,14 +188,14 @@ export function VoiceChatModal({
         const checkResult = await PermissionsAndroid.check(
           PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
         );
-        
+
         if (checkResult) {
           console.log('Microphone permission already granted');
           return true;
         }
-        
+
         await new Promise(resolve => setTimeout(resolve, 100));
-        
+
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
           {
@@ -242,10 +239,10 @@ export function VoiceChatModal({
 
   const handleStartConversation = async () => {
     setConversationError(null);
-    
+
     const hasPermission = await requestMicrophonePermission();
     setPermissionGranted(hasPermission);
-    
+
     if (!hasPermission) {
       setConversationError('Microphone permission is required to start a conversation');
       return;
@@ -263,7 +260,7 @@ export function VoiceChatModal({
       console.log(`Starting conversation session with token (${agentType})...`);
       const userPreferences = await getUserPreferences(user?.uid || '');
       const name = userPreferences?.name || '';
-      
+
       // Prepare dynamic variables
       const dynamicVariables: Record<string, any> = {
         name: name,
@@ -342,7 +339,7 @@ export function VoiceChatModal({
 
   const isConnected = connectionStatus === 'connected';
   const isConnecting = connectionStatus === 'connecting';
-  
+
 
   return (
     <Modal
@@ -383,8 +380,8 @@ export function VoiceChatModal({
                 <TouchableOpacity style={styles.retryButton} onPress={handleStartConversation}>
                   <Text style={styles.retryButtonText}>Try Again</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.retryButton, styles.secondaryButton]} 
+                <TouchableOpacity
+                  style={[styles.retryButton, styles.secondaryButton]}
                   onPress={handleEndConversation}
                 >
                   <Text style={styles.retryButtonText}>Close</Text>
@@ -421,11 +418,16 @@ export function VoiceChatModal({
                     )}
                     ListFooterComponent={
                       isListening ? (
-                        <View style={[styles.messageBubble, styles.userMessage, styles.listeningIndicator]}>
+                        <Animated.View style={[
+                          styles.messageBubble,
+                          styles.userMessage,
+                          styles.listeningIndicator,
+                          animatedStyle // Reuse the pulsing animation
+                        ]}>
                           <Text style={[styles.messageText, styles.userMessageText, styles.listeningText]}>
-                            Agent is listening...
+                            Listening... (I'm here!)
                           </Text>
-                        </View>
+                        </Animated.View>
                       ) : null
                     }
                     contentContainerStyle={styles.messagesContent}
@@ -436,8 +438,8 @@ export function VoiceChatModal({
                 </View>
 
                 {isConnected && (
-                  <TouchableOpacity 
-                    style={styles.endButton} 
+                  <TouchableOpacity
+                    style={styles.endButton}
                     onPress={handleEndConversation}
                   >
                     <Text style={styles.endButtonText}>End Call</Text>

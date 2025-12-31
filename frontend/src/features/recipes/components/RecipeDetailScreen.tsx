@@ -25,7 +25,7 @@ export function RecipeDetailScreen() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCookModalVisible, setIsCookModalVisible] = useState(false);
   const insets = useSafeAreaInsets();
-  
+
   useEffect(() => {
     try {
       const recipeParam = params.recipe as string | undefined;
@@ -92,7 +92,7 @@ export function RecipeDetailScreen() {
 
   const handleCopyIngredients = () => {
     if (!recipe) return;
-    
+
     // Format ingredients list for clipboard
     const ingredientsText = recipe.ingredients.map((ingredient) => {
       let line = `• ${ingredient.name}`;
@@ -104,7 +104,7 @@ export function RecipeDetailScreen() {
       }
       return line;
     }).join('\n');
-    
+
     Clipboard.setStringAsync(ingredientsText);
     Alert.alert('Copied!', 'Ingredient list has been copied to clipboard');
   };
@@ -145,7 +145,7 @@ export function RecipeDetailScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header with back button */}
-      
+
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Title & Description */}
@@ -158,7 +158,7 @@ export function RecipeDetailScreen() {
               <Text style={styles.backArrowText}>✕</Text>
             </TouchableOpacity>
           </View>
-        
+
           {recipe.description && (
             <Text style={styles.description}>{recipe.description}</Text>
           )}
@@ -200,7 +200,7 @@ export function RecipeDetailScreen() {
         {/* Ingredients Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            
+
             <Text style={styles.sectionTitle}>Ingredients</Text>
             <Text style={styles.sectionCount}>{recipe.ingredients.length} items</Text>
           </View>
@@ -218,7 +218,7 @@ export function RecipeDetailScreen() {
                 )}
               </View>
             ))}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.copyButton}
               onPress={handleCopyIngredients}
             >
@@ -239,7 +239,7 @@ export function RecipeDetailScreen() {
                 <View style={styles.stepNumber}>
                   <Text style={styles.stepNumberText}>{index + 1}</Text>
                 </View>
-                <View style= {styles.instructionTextContainer}>
+                <View style={styles.instructionTextContainer}>
                   <Text style={styles.instructionText}>{formatInstruction(instruction)}</Text>
                 </View>
               </View>
@@ -252,7 +252,7 @@ export function RecipeDetailScreen() {
       </ScrollView>
 
       {/* Action Buttons - Fixed at bottom */}
-      <View style={[styles.actionsContainer, { paddingBottom: insets.bottom + Spacing.sm}]}>
+      <View style={[styles.actionsContainer, { paddingBottom: insets.bottom + Spacing.sm }]}>
         <TouchableOpacity
           style={[styles.actionButton, styles.unsaveButton]}
           onPress={handleUnsave}
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     maxWidth: '90%',
   },
-  
+
   scrollView: {
     flex: 1,
   },
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.sm,
   },
   ingredientsList: {
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.white,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
   },
@@ -450,6 +450,7 @@ const styles = StyleSheet.create({
   ingredientName: {
     flex: 1,
     fontSize: 18,
+    fontWeight: '500',
     color: Colors.text,
     lineHeight: 24,
   },
@@ -476,7 +477,7 @@ const styles = StyleSheet.create({
   },
   instructionItem: {
     flexDirection: 'row',
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.white,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
   },
