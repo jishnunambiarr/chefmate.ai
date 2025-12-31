@@ -22,7 +22,12 @@ app = FastAPI(
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     logger.info(f">>> Request: {request.method} {request.url.path}")
-    logger.info(f">>> Headers: {dict(request.headers)}")
+    headers = dict(request.headers)
+    if "authorization" in headers:
+        headers["authorization"] = "[REDACTED]"
+    if "Authorization" in headers:
+        headers["Authorization"] = "[REDACTED]"
+    logger.info(f">>> Headers: {headers}")
     response = await call_next(request)
     logger.info(f"<<< Response: {response.status_code}")
     return response
